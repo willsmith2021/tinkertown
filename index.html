@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Tinkertown Fix-It Crew</title>
+<meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest">
+<style>
+  html,body{margin:0;height:100%;background:#BFE9FF;overflow:hidden;touch-action:none;overscroll-behavior:none;position:fixed;inset:0;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;font-family:"Baloo 2","Nunito","Trebuchet MS",system-ui,sans-serif}
+  #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  svg#scene{width:100vw;height:100vh;display:block}
+  #sub{position:fixed;left:50%;top:2vh;transform:translateX(-50%);max-width:66vw;background:#ffffffee;color:#2B2D42;border-radius:28px;padding:14px 28px;font-size:clamp(22px,3.6vw,44px);font-weight:800;line-height:1.2;text-align:center;box-shadow:0 6px 0 #00000018;opacity:0;transition:opacity .25s;pointer-events:none}
+  #sub.on{opacity:1}
+  #sub b{color:#7B3FE4;margin-right:.35em}
+  #sub b.g{color:#5A7D9A}
+  #home{position:fixed;top:2vh;left:2vh;width:12vh;height:12vh;min-width:64px;min-height:64px;border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;display:none;align-items:center;justify-content:center;font-size:5vh;cursor:pointer}
+  #home .ring{position:absolute;inset:-6px;border-radius:50%;border:6px solid #7B3FE4;clip-path:inset(0 100% 0 0);transition:clip-path 0s}
+  #home.holding .ring{clip-path:inset(0 0 0 0);transition:clip-path 1.5s linear}
+  #ccbtn{position:fixed;top:3vh;left:calc(4vh + max(12vh,64px));width:10vh;height:10vh;min-width:56px;min-height:56px;border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;font-weight:900;font-size:3vh;color:#2B2D42;cursor:pointer}
+  #ccbtn.off{opacity:.45}
+  .tap{cursor:pointer}
+  @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+  @keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-4deg)}75%{transform:rotate(4deg)}}
+  @keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+  @keyframes drop{from{transform:translateY(0);opacity:1}to{transform:translateY(260px);opacity:0}}
+  @keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.25)}100%{transform:scale(1)}}
+  @keyframes floaty{0%{transform:translateY(0) scale(1);opacity:1}100%{transform:translateY(-220px) scale(1.4);opacity:0}}
+  .bob{animation:bob 2.2s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  .pulse{animation:pulse 1.4s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  .wiggle{animation:wiggle .35s ease-in-out 3;transform-box:fill-box;transform-origin:50% 100%}
+  .pop{animation:pop .5s cubic-bezier(.3,1.6,.5,1) both;transform-box:fill-box;transform-origin:center}
+  .floaty{animation:floaty 1.4s ease-out forwards;transform-box:fill-box;transform-origin:center}
+  .drop{animation:drop .9s linear infinite}
+  @keyframes hop{0%,100%{transform:translateY(0)}40%{transform:translateY(-36px)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes flap{0%,100%{transform:scaleX(1)}50%{transform:scaleX(.6)}}
+  .hop{animation:hop .45s ease-out;transform-box:fill-box;transform-origin:center bottom}
+  .spin{animation:spin .5s linear infinite;transform-box:fill-box;transform-origin:center}
+  .sunspin{animation:spin 1s ease-out 1;transform-box:fill-box;transform-origin:center}
+  .flap{animation:flap .35s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
+  #xbtn{position:fixed;top:2vh;right:2vh;width:12vh;height:12vh;min-width:64px;min-height:64px;border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;display:none;align-items:center;justify-content:center;font-size:6vh;font-weight:900;color:#E63946;cursor:pointer;z-index:20}
+  #xbtn .ring{position:absolute;inset:-6px;border-radius:50%;border:6px solid #E63946;clip-path:inset(0 100% 0 0);transition:clip-path 0s}
+  #xbtn.holding .ring{clip-path:inset(0 0 0 0);transition:clip-path 2s linear}
+  #xhint{position:fixed;top:calc(4vh + max(12vh,64px));right:2vh;background:#2B2D42;color:#fff;font-weight:800;font-size:clamp(14px,2.2vw,22px);padding:10px 16px;border-radius:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:20}
+  #xhint.on{opacity:1}
+  #resume{position:fixed;inset:0;background:#2B2D42cc;display:none;align-items:center;justify-content:center;z-index:30}
+  #resume button{font:900 clamp(28px,5vw,60px) inherit;font-family:inherit;color:#fff;background:#3CCB6B;border:none;border-radius:999px;padding:4vh 7vw;box-shadow:0 10px 0 #00000033;cursor:pointer}
+</style>
+</head>
+<body>
+<div id="stage"><svg id="scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet"></svg></div>
+<div id="sub"></div>
+<button id="home" aria-label="Home (hold)"><span class="ring"></span>🏠</button>
+<button id="ccbtn" aria-label="Subtitles">CC</button>
+<button id="xbtn" aria-label="Exit (grown-ups: hold)"><span class="ring"></span>✕</button>
+<div id="xhint">Grown-ups: hold ✕ for 2 seconds to exit</div>
+<div id="resume"><button>▶ Keep playing</button></div>
+
+<script>
+const KID = "Manik";
+/* ============ VOICE + SUBTITLES ============ */
+const LINES = {
+  hello:["Tara","Hello! I am Tara. Welcome to Tinkertown!"],
+  ohno:["Tara","Oh no! Grumble the cloud made a big mess. Let us clean it up together!"],
+  tapmachine:["Tara","Tap a machine to help!"],
+  b_intro:["Tara","Vroom vroom! Here comes Boulder the bulldozer. Big rocks are on the road. Tap a rock!"],
+  one:["Tara","One!"], two:["Tara","Two!"], three:["Tara","Three!"],
+  b_done:["Tara","Yay! Three rocks! The road is clean. Thank you, Boulder!"],
+  s_intro:["Tara","Splash splash! Here comes Splash the water tanker. The houses are dirty. Let us wash them!"],
+  tap_red:["Tara","Tap the red house!"], tap_blue:["Tara","Tap the blue house!"],
+  tap_yellow:["Tara","Tap the yellow house!"], tap_green:["Tara","Tap the green house!"],
+  yes_red:["Tara","Yes! Red!"], yes_blue:["Tara","Yes! Blue!"], yes_yellow:["Tara","Yes! Yellow!"], yes_green:["Tara","Yes! Green!"],
+  look_again:["Tara","Hmm! Look again!"],
+  s_done:["Tara","Sparkly clean! Thank you, Splash!"],
+  c_intro:["Tara","Up, up, up! Here comes Stretch the crane."],
+  lift_big:["Tara","Lift the big ball!"], lift_small:["Tara","Lift the small ball!"],
+  yes_big:["Tara","Yes! That is big!"], yes_small:["Tara","Yes! That is small!"],
+  c_done:["Tara","Great lifting! Thank you, Stretch!"],
+  all_clean:["Tara","Look! We cleaned all of Tinkertown!"],
+  okay:["Tara","That is okay, Grumble. Do you want to be our friend?"],
+  hooray:["Tara","Hooray! Friends help each other!"],
+  find_red:["Tara","Can you find something red in your room?"],
+  d_intro:["Tara","Dig dig! Here comes Digby the digger. Something is hiding in the sand. Tap the sand to dig!"],
+  d_more:["Tara","Dig more!"],
+  d_cow:["Tara","It is a cow! The cow says moo!"], d_dog:["Tara","It is a dog! The dog says woof woof!"],
+  d_elephant:["Tara","It is an elephant! The elephant is very big!"],
+  d_done:["Tara","Wow! We found all the animals! Thank you, Digby!"],
+  p_intro:["Tara","Beep beep! Here comes Tipper the dump truck. Let us fill the holes. Put the shape in its hole!"],
+  p_circle:["Tara","Circle! Round, round circle!"], p_square:["Tara","Square! Like a box!"], p_triangle:["Tara","Triangle! Pointy on top!"],
+  p_try:["Tara","Oops! Try the other hole!"],
+  p_done:["Tara","All the holes are filled! Thank you, Tipper!"],
+  w_intro:["Tara","Swish swish! Here comes Sweepy the road sweeper. The park has lots of leaves. Rub the screen to sweep!"],
+  w_half:["Tara","Keep sweeping! Swish swish!"],
+  w_done:["Tara","Wow, the park is clean! Look, a butterfly! Thank you, Sweepy!"],
+  e_welldone:["Tara","Well done!"], e_super:["Tara","Super!"], e_helper:["Tara","You are a great helper!"],
+  sun:["Tara","Hello, sunshine!"],
+  hello_m:["Tara","Hello, Manik! I am Tara. Welcome to Tinkertown!"],
+  pick_m:["Tara","Manik, tap a machine to play!"],
+  stage_pick:["Tara","Tap a star to play!"],
+  win1:["Tara","Yay, Manik! You did it!"],
+  win2:["Tara","Well done, Manik!"],
+  win3:["Tara","Super, Manik! You are a star!"],
+  win4:["Tara","Manik, you are a great helper!"],
+  win5:["Tara","Wow, Manik! Clap, clap, clap!"],
+  fin_m:["Tara","Thank you, Manik! You helped all of Tinkertown!"],
+  four:["Tara","Four!"],
+  five:["Tara","Five!"],
+  cnt_rocks:["Tara","Boulder needs help! Tap the rocks and count!"],
+  cnt_bricks:["Tara","Tipper needs bricks! Tap the bricks and count!"],
+  num_intro:["Tara","Let us find the numbers!"],
+  find_1:["Tara","Find number one!"],
+  find_2:["Tara","Find number two!"],
+  find_3:["Tara","Find number three!"],
+  yes_1:["Tara","Yes! Number one!"],
+  yes_2:["Tara","Yes! Number two!"],
+  yes_3:["Tara","Yes! Number three!"],
+  col_intro:["Tara","Splash is ready to wash! Let us find the colour!"],
+  tap_orange:["Tara","Tap the orange house!"],
+  tap_purple:["Tara","Tap the purple house!"],
+  tap_pink:["Tara","Tap the pink house!"],
+  yes_orange:["Tara","Yes! Orange!"],
+  yes_purple:["Tara","Yes! Purple!"],
+  yes_pink:["Tara","Yes! Pink!"],
+  car_red:["Tara","Wash the red car!"],
+  car_blue:["Tara","Wash the blue car!"],
+  car_yellow:["Tara","Wash the yellow car!"],
+  car_green:["Tara","Wash the green car!"],
+  car_orange:["Tara","Wash the orange car!"],
+  size_intro:["Tara","Stretch the crane is ready to lift! Up, up, up!"],
+  lift_bigbox:["Tara","Lift the big box!"],
+  lift_smallbox:["Tara","Lift the small box!"],
+  lift_bigcow:["Tara","Lift the big cow!"],
+  lift_smallcow:["Tara","Lift the small cow!"],
+  lift_tall:["Tara","Lift the tall tower!"],
+  lift_short:["Tara","Lift the short tower!"],
+  lift_full:["Tara","Lift the full bucket!"],
+  lift_empty:["Tara","Lift the empty bucket!"],
+  yes_tall:["Tara","Yes! That is tall!"],
+  yes_short:["Tara","Yes! That is short!"],
+  yes_full:["Tara","Yes! That is full!"],
+  yes_empty:["Tara","Yes! That is empty!"],
+  d_cat:["Tara","It is a cat! The cat says meow!"],
+  d_duck:["Tara","It is a duck! The duck says quack quack!"],
+  d_monkey:["Tara","It is a monkey! The monkey says ooh ooh aah aah!"],
+  who_moo:["Tara","Who says moo?"],
+  who_woof:["Tara","Who says woof woof?"],
+  who_meow:["Tara","Who says meow?"],
+  who_quack:["Tara","Who says quack quack?"],
+  ani_intro:["Tara","Let us find the animals!"],
+  fruit_dig_intro:["Tara","Digby found a fruit garden! Tap the sand to dig!"],
+  d_banana:["Tara","It is a banana! Yellow banana!"],
+  d_apple:["Tara","It is an apple! Red apple!"],
+  d_mango:["Tara","It is a mango! Yummy mango!"],
+  find_banana:["Tara","Tap the banana!"],
+  find_apple:["Tara","Tap the apple!"],
+  find_mango:["Tara","Tap the mango!"],
+  fruit_intro:["Tara","Let us find the fruits!"],
+  p_star:["Tara","Star! Twinkle, twinkle!"],
+  p_heart:["Tara","Heart! Love you!"],
+  find_circle:["Tara","Tap the circle!"],
+  find_square:["Tara","Tap the square!"],
+  find_triangle:["Tara","Tap the triangle!"],
+  find_star:["Tara","Tap the star!"],
+  find_heart:["Tara","Tap the heart!"],
+  shape_intro:["Tara","Let us find the shapes!"],
+  rub_bus:["Tara","Oh no, the school bus is dusty! Rub the screen to clean it!"],
+  done_bus:["Tara","Yay! It is a school bus! Beep beep!"],
+  rub_car:["Tara","The car is muddy! Rub the screen to clean it!"],
+  done_car:["Tara","Shiny car! Vroom vroom!"],
+  rub_train:["Tara","The train is covered in sand! Rub the screen to clean it!"],
+  done_train:["Tara","It is a train! Choo choo!"],
+  rub_plane:["Tara","Clouds are hiding something! Rub the clouds away!"],
+  done_plane:["Tara","It is an aeroplane! Zoom!"],
+  g_sorry:["Grumble","Sorry, everyone. I was sad. I had no friends."],
+  g_yes:["Grumble","Yes! I will water the flowers!"],
+  g_rain:["Grumble","Rain, rain, for the flowers!"]
+};
+let ccOn = true;
+const VOICE = new Audio(); VOICE.preload='auto';
+/* warm the cache so lines start instantly */
+const _pre = Object.keys(LINES).map(id=>{const x=new Audio(); x.preload='auto'; x.src=`audio/${id}.mp3`; return x;});
+const subEl = document.getElementById('sub');
+let currentAudio = null;
+function showSub(who,text){
+  if(!ccOn){subEl.classList.remove('on');return;}
+  subEl.innerHTML = `<b class="${who==='Grumble'?'g':''}">${who}:</b>${text}`;
+  subEl.classList.add('on');
+}
+function hideSub(){subEl.classList.remove('on');}
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+/* pick the most natural-sounding Indian-English (then any English) voice on this device */
+let _bv=null;
+function bestVoice(){
+  if(_bv) return _bv;
+  let vs=[]; try{vs=speechSynthesis.getVoices();}catch(e){}
+  if(!vs.length) return null;
+  const score=v=>{
+    const n=(v.name||'').toLowerCase(), l=(v.lang||'').toLowerCase().replace('_','-'); let s=0;
+    if(l==='en-in') s+=50; else if(l.startsWith('en-gb')) s+=20; else if(l.startsWith('en')) s+=10; else return -1;
+    if(/premium|enhanced|natural|neural|online/.test(n)) s+=40;
+    if(/isha|veena|neerja|heera|google/.test(n)) s+=25;
+    if(/female|woman/.test(n)) s+=5;
+    if(/rishi|ravi|prabhat|male/.test(n)) s-=3;
+    if(/compact|espeak|novelty|bells|bad news|whisper|zarvox|trinoids|albert|bubbles/.test(n)) s-=60;
+    return s;
+  };
+  _bv = vs.filter(v=>score(v)>=0).sort((a,b)=>score(b)-score(a))[0] || null;
+  return _bv;
+}
+try{speechSynthesis.onvoiceschanged=()=>{_bv=null;bestVoice();};}catch(e){}
+function say(id){
+  const [who,text] = LINES[id];
+  showSub(who,text);
+  if(currentAudio){try{currentAudio.pause();}catch(e){}}
+  return new Promise(resolve=>{
+    let done=false; const finish=()=>{if(done)return;done=true;resolve();};
+    const a = VOICE;
+    currentAudio=a;
+    a.onended=()=>{finish();};
+    a.src = `audio/${id}.mp3`;
+    a.onerror=()=>{ // fallback: device voice, Indian English
+      try{
+        const u=new SpeechSynthesisUtterance(text); u.lang='en-IN'; u.rate=0.92; u.pitch=who==='Grumble'?1.35:1.08;
+        const v=bestVoice(); if(v){u.voice=v;u.lang=v.lang;}
+        u.onend=finish; speechSynthesis.cancel(); speechSynthesis.speak(u);
+        setTimeout(finish, 900+text.length*75);
+      }catch(e){setTimeout(finish,900+text.length*60);}
+    };
+    a.play().catch(()=>a.onerror());
+    setTimeout(finish, 12000);
+  });
+}
+document.getElementById('ccbtn').onclick=()=>{ccOn=!ccOn;document.getElementById('ccbtn').classList.toggle('off',!ccOn);if(!ccOn)hideSub();};
+
+/* tiny sound effects (WebAudio) */
+let AC=null;
+function sfx(type){
+  try{
+    AC = AC || new (window.AudioContext||window.webkitAudioContext)();
+    const t=AC.currentTime, o=AC.createOscillator(), g=AC.createGain();
+    o.connect(g); g.connect(AC.destination);
+    const set={
+      pop:[[600,1000],.15,'sine'], vroom:[[70,110],.6,'sawtooth'], ding:[[880,1320],.35,'triangle'],
+      boing:[[300,150],.3,'square'], honk:[[420,400],.16,'square'], swish:[[1200,300],.18,'triangle'], splash:[[400,120],.4,'triangle'], lift:[[300,700],.6,'sine']}[type];
+    o.type=set[2]; o.frequency.setValueAtTime(set[0][0],t); o.frequency.exponentialRampToValueAtTime(set[0][1],t+set[1]);
+    g.gain.setValueAtTime(type==='vroom'?.08:.15,t); g.gain.exponentialRampToValueAtTime(.001,t+set[1]);
+    o.start(t); o.stop(t+set[1]);
+  }catch(e){}
+}
+
+/* ============ FLAT VECTOR ART ============ */
+const C = {sky:'#BFE9FF', hill1:'#9BE29B', hill2:'#6CCB7A', road:'#5B6173', line:'#F6F7FB', orange:'#FF8A3D', orangeD:'#E56A1F',
+  blue:'#2F9BFF', blueD:'#1B74D1', yellow:'#FFC93C', yellowD:'#E8A800', red:'#FF4D5A', green:'#3CCB6B', purple:'#7B3FE4', pink:'#FF6FB5',
+  dark:'#2B2D42', skin:'#8D5524', mud:'#8B5E3C', mud2:'#6E4528', grey:'#9AA5B1', white:'#fff'};
+function eyes(x,y,s=1,mood='happy'){
+  const r=14*s;
+  let m=`<circle cx="${x-22*s}" cy="${y}" r="${r}" fill="#fff"/><circle cx="${x+22*s}" cy="${y}" r="${r}" fill="#fff"/>
+  <circle cx="${x-20*s}" cy="${y+2*s}" r="${7*s}" fill="${C.dark}"/><circle cx="${x+24*s}" cy="${y+2*s}" r="${7*s}" fill="${C.dark}"/>
+  <circle cx="${x-17*s}" cy="${y-1*s}" r="${2.5*s}" fill="#fff"/><circle cx="${x+27*s}" cy="${y-1*s}" r="${2.5*s}" fill="#fff"/>`;
+  if(mood==='sad') m+=`<path d="M${x-36*s} ${y-22*s} L${x-10*s} ${y-16*s} M${x+36*s} ${y-22*s} L${x+10*s} ${y-16*s}" stroke="${C.dark}" stroke-width="${4*s}" stroke-linecap="round"/>`;
+  return m;
+}
+function smile(x,y,s=1,sad=false){
+  return sad ? `<path d="M${x-14*s} ${y+8*s} Q${x} ${y-6*s} ${x+14*s} ${y+8*s}" stroke="${C.dark}" stroke-width="${5*s}" fill="none" stroke-linecap="round"/>`
+             : `<path d="M${x-16*s} ${y} Q${x} ${y+16*s} ${x+16*s} ${y}" stroke="${C.dark}" stroke-width="${5*s}" fill="none" stroke-linecap="round"/>`;
+}
+function wheel(x,y,r){return `<circle cx="${x}" cy="${y}" r="${r}" fill="${C.dark}"/><circle cx="${x}" cy="${y}" r="${r*.45}" fill="#C9CED6"/>`}
+
+function bulldozer(x,y,s=1){ // origin = bottom-centre
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="6" rx="200" ry="16" fill="#00000018"/>
+    <rect x="-170" y="-80" width="300" height="80" rx="40" fill="${C.dark}"/>
+    ${[-130,-65,0,65,100].map(cx=>`<circle cx="${cx}" cy="-40" r="26" fill="#4A4E69"/>`).join('')}
+    <rect x="-150" y="-190" width="250" height="110" rx="24" fill="${C.orange}"/>
+    <rect x="-130" y="-300" width="150" height="120" rx="26" fill="${C.orange}"/>
+    <rect x="-112" y="-282" width="114" height="78" rx="18" fill="#DDF3FF"/>
+    ${eyes(-55,-246,1)}
+    ${smile(-55,-218,1)}
+    <rect x="100" y="-170" width="40" height="22" rx="10" fill="${C.orangeD}"/>
+    <path d="M150 -220 Q215 -120 150 -10 L190 -10 Q240 -120 190 -220 Z" fill="${C.yellow}"/>
+    <rect x="40" y="-225" width="22" height="40" rx="8" fill="${C.dark}"/>
+  </g>`;
+}
+function tanker(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="6" rx="220" ry="16" fill="#00000018"/>
+    <rect x="-210" y="-120" width="420" height="70" rx="20" fill="${C.blueD}"/>
+    <rect x="-200" y="-260" width="270" height="150" rx="75" fill="${C.blue}"/>
+    <rect x="-150" y="-245" width="40" height="120" rx="20" fill="#ffffff55"/>
+    <rect x="80" y="-270" width="140" height="160" rx="28" fill="${C.blue}"/>
+    <rect x="98" y="-252" width="104" height="70" rx="16" fill="#DDF3FF"/>
+    ${eyes(150,-218,.9)}
+    ${smile(150,-150,.9)}
+    <rect x="-230" y="-200" width="40" height="22" rx="10" fill="${C.dark}"/>
+    ${wheel(-140,-48,40)}${wheel(-40,-48,40)}${wheel(150,-48,40)}
+  </g>`;
+}
+function craneTruck(x,y,s=1,armAngle=-35,hookLen=140,extra=''){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="6" rx="200" ry="16" fill="#00000018"/>
+    <rect x="-190" y="-120" width="380" height="72" rx="20" fill="${C.yellowD}"/>
+    <rect x="70" y="-250" width="130" height="150" rx="28" fill="${C.yellow}"/>
+    <rect x="88" y="-232" width="94" height="70" rx="16" fill="#DDF3FF"/>
+    ${eyes(135,-198,.85)}
+    ${smile(135,-138,.85)}
+    <rect x="-120" y="-190" width="140" height="80" rx="20" fill="${C.yellow}"/>
+    ${wheel(-120,-46,40)}${wheel(0,-46,40)}${wheel(130,-46,40)}
+    <g transform="translate(-50 -180) rotate(${armAngle})">
+      <rect x="0" y="-22" width="460" height="44" rx="22" fill="${C.yellow}"/>
+      ${[60,140,220,300,380].map(cx=>`<path d="M${cx} -14 l30 28 l30 -28" stroke="${C.yellowD}" stroke-width="7" fill="none"/>`).join('')}
+      <circle cx="0" cy="0" r="30" fill="${C.yellowD}"/>
+      <g transform="translate(445 0) rotate(${-armAngle})">
+        <line x1="0" y1="0" x2="0" y2="${hookLen}" stroke="${C.dark}" stroke-width="6"/>
+        <path d="M-18 ${hookLen} q0 36 22 36 q20 0 20 -20" stroke="${C.dark}" stroke-width="10" fill="none" stroke-linecap="round"/>
+        ${extra}
+      </g>
+    </g>
+  </g>`;
+}
+function tara(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="4" rx="70" ry="12" fill="#00000018"/>
+    <rect x="-38" y="-70" width="30" height="70" rx="14" fill="${C.dark}"/>
+    <rect x="8" y="-70" width="30" height="70" rx="14" fill="${C.dark}"/>
+    <rect x="-55" y="-190" width="110" height="130" rx="40" fill="${C.orange}"/>
+    <rect x="-55" y="-150" width="110" height="14" fill="${C.yellow}"/>
+    <rect x="-55" y="-112" width="110" height="14" fill="${C.yellow}"/>
+    <rect x="-85" y="-180" width="30" height="90" rx="15" fill="${C.skin}" transform="rotate(20 -70 -180)"/>
+    <rect x="55" y="-180" width="30" height="90" rx="15" fill="${C.skin}" transform="rotate(-35 70 -180)"/>
+    <circle cx="0" cy="-250" r="62" fill="${C.dark}"/>
+    <circle cx="0" cy="-240" r="54" fill="${C.skin}"/>
+    <circle cx="-20" cy="-245" r="8" fill="${C.dark}"/><circle cx="20" cy="-245" r="8" fill="${C.dark}"/>
+    <circle cx="-17" cy="-248" r="2.5" fill="#fff"/><circle cx="23" cy="-248" r="2.5" fill="#fff"/>
+    <circle cx="-34" cy="-222" r="9" fill="#E07A5F" opacity=".6"/><circle cx="34" cy="-222" r="9" fill="#E07A5F" opacity=".6"/>
+    <path d="M-16 -220 Q0 -204 16 -220" stroke="${C.dark}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    <path d="M-70 -270 Q0 -350 70 -270 Z" fill="${C.purple}"/>
+    <rect x="-82" y="-280" width="164" height="20" rx="10" fill="${C.purple}"/>
+    <rect x="-8" y="-335" width="16" height="60" rx="8" fill="#9B6BF0"/>
+  </g>`;
+}
+function grumble(x,y,s=1,happy=false){
+  const f = happy ? '#BFE3FF' : '#8E9AAF', f2 = happy ? '#E8F5FF' : '#A7B2C4';
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <circle cx="-70" cy="10" r="60" fill="${f}"/><circle cx="70" cy="10" r="60" fill="${f}"/>
+    <circle cx="-20" cy="-30" r="80" fill="${f}"/><circle cx="50" cy="-20" r="65" fill="${f}"/>
+    <rect x="-120" y="0" width="240" height="70" rx="35" fill="${f}"/>
+    <circle cx="-40" cy="-50" r="30" fill="${f2}"/>
+    ${eyes(0,0,1,happy?'happy':'sad')}
+    ${smile(0,36,1,!happy)}
+    ${happy?`<circle cx="-50" cy="30" r="10" fill="#FF9AA2" opacity=".7"/><circle cx="50" cy="30" r="10" fill="#FF9AA2" opacity=".7"/>`:''}
+  </g>`;
+}
+function house(x,y,color,id,dirty=true){
+  return `<g id="${id}" class="tap house" data-color="${color}" transform="translate(${x} ${y})">
+    <g class="hbody">
+    <rect x="-120" y="-200" width="240" height="200" rx="16" fill="${C[color]}"/>
+    <path d="M-150 -190 L0 -320 L150 -190 Z" fill="${C[color]}" stroke="${C.dark}" stroke-width="12" stroke-linejoin="round"/>
+    <rect x="-36" y="-110" width="72" height="110" rx="34" fill="#ffffffcc"/>
+    <rect x="-95" y="-165" width="50" height="50" rx="10" fill="#DDF3FF"/>
+    <rect x="45" y="-165" width="50" height="50" rx="10" fill="#DDF3FF"/>
+    <g class="mud" style="transition:opacity 1s">
+      ${dirty?`<circle cx="-70" cy="-55" r="34" fill="${C.mud}"/><circle cx="60" cy="-150" r="26" fill="${C.mud2}"/>
+      <circle cx="75" cy="-45" r="22" fill="${C.mud}"/><circle cx="-90" cy="-170" r="16" fill="${C.mud2}"/>
+      <circle cx="-20" cy="-40" r="14" fill="${C.mud2}"/><circle cx="20" cy="-170" r="18" fill="${C.mud}"/>
+      <circle cx="0" cy="-250" r="22" fill="${C.mud}"/><circle cx="-60" cy="-215" r="14" fill="${C.mud2}"/>`:''}
+    </g>
+    </g>
+    <rect x="-150" y="-330" width="300" height="340" fill="transparent"/>
+  </g>`;
+}
+function rock(x,y,r,id){
+  return `<g id="${id}" class="tap rock" transform="translate(${x} ${y})">
+    <g class="rbody"><path d="M${-r} 0 Q${-r*1.1} ${-r*.9} ${-r*.3} ${-r*1.2} Q${r*.6} ${-r*1.4} ${r} ${-r*.5} Q${r*1.15} 0 ${r*.8} 0 Z" fill="${C.grey}"/>
+    <path d="M${-r*.5} ${-r*.7} q${r*.3} ${-r*.3} ${r*.6} ${-r*.2}" stroke="#ffffff88" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <circle cx="${r*.3}" cy="${-r*.4}" r="${r*.12}" fill="#7C8794"/></g>
+    <rect x="${-r*1.3}" y="${-r*1.5}" width="${r*2.6}" height="${r*1.7}" fill="transparent"/>
+  </g>`;
+}
+function ball(x,y,r,color,id){
+  return `<g id="${id}" class="tap ball" transform="translate(${x} ${y})"><g class="bbody">
+    <circle cx="0" cy="${-r}" r="${r}" fill="${C[color]}"/>
+    <path d="M${-r} ${-r} Q0 ${-r*1.6} ${r} ${-r}" stroke="#fff" stroke-width="${r*.18}" fill="none"/>
+    <circle cx="${-r*.4}" cy="${-r*1.45}" r="${r*.15}" fill="#ffffff99"/></g>
+    <rect x="${-r*1.2}" y="${-r*2.3}" width="${r*2.4}" height="${r*2.4}" fill="transparent"/></g>`;
+}
+function backdrop(clean=true){
+  return `<rect width="1600" height="900" fill="${clean?C.sky:'#C9D3DD'}"/>
+  <g id="sun" class="tap"><circle cx="1400" cy="140" r="80" fill="${clean?'#FFD23F':'#E3E3C8'}"/>${clean?`<circle cx="1375" cy="128" r="8" fill="${C.dark}"/><circle cx="1425" cy="128" r="8" fill="${C.dark}"/><path d="M1378 160 Q1400 178 1422 160" stroke="${C.dark}" stroke-width="6" fill="none" stroke-linecap="round"/>`:''}</g>
+  <path d="M0 560 Q300 420 650 540 T1300 520 T1600 500 V900 H0Z" fill="${clean?C.hill1:'#A9C4A4'}"/>
+  <path d="M0 640 Q400 540 800 630 T1600 600 V900 H0Z" fill="${clean?C.hill2:'#8DAF8C'}"/>`;
+}
+function road(y=760){
+  return `<rect x="0" y="${y-20}" width="1600" height="200" fill="${C.road}"/>
+  ${Array.from({length:9},(_,i)=>`<rect x="${i*190+20}" y="${y+60}" width="110" height="16" rx="8" fill="${C.line}"/>`).join('')}`;
+}
+function star(x,y,r,fill=C.yellow){
+  const p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*.45:r;p.push(`${x+Math.cos(a)*rr},${y+Math.sin(a)*rr}`);}
+  return `<polygon points="${p.join(' ')}" fill="${fill}" stroke="#fff" stroke-width="${r*.12}" stroke-linejoin="round"/>`;
+}
+function confetti(){
+  const cols=[C.red,C.blue,C.yellow,C.green,C.purple,C.orange];
+  let s='';for(let i=0;i<40;i++){const x=100+Math.random()*1400,y=300+Math.random()*400,c=cols[i%6];
+    s+=`<rect class="floaty" style="animation-delay:${Math.random()*.4}s" x="${x}" y="${y}" width="22" height="22" rx="6" fill="${c}" transform="rotate(${Math.random()*90} ${x} ${y})"/>`;}
+  return `<g pointer-events="none">${s}</g>`;
+}
+
+/* ============ SCENES ============ */
+const svg = document.getElementById('scene');
+const homeBtn = document.getElementById('home');
+const FRESH=()=>({boulder:false,splash:false,stretch:false,digby:false,tipper:false,sweepy:false});
+let progress = FRESH();
+let sceneToken = 0;   // cancels old async scenes
+const live = t => t===sceneToken;
+function setScene(html){ sceneToken++; svg.innerHTML = html; return sceneToken; }
+const $ = id => svg.querySelector('#'+id);
+function celebrate(){ svg.insertAdjacentHTML('beforeend', confetti()); sfx('ding'); }
+
+/* ============ EXTRA FUN: tappable sun + machines ============ */
+const pick = a => a[Math.floor(Math.random()*a.length)];
+function voiceIdle(){ return !VOICE.src || VOICE.paused || VOICE.ended; }
+function wireFun(){
+  const sun=$('sun');
+  if(sun) sun.onclick=()=>{ sun.classList.remove('sunspin'); void sun.getBBox(); sun.classList.add('sunspin'); sfx('ding'); if(voiceIdle()) say('sun'); };
+  svg.querySelectorAll('.honk').forEach(h=>{ h.style.cursor='pointer'; h.addEventListener('click',e=>{ h.classList.remove('hop'); void h.getBBox(); h.classList.add('hop'); sfx('honk'); setTimeout(()=>sfx('honk'),180); }); });
+}
+function svgPoint(e){ const p=svg.createSVGPoint(); p.x=e.clientX; p.y=e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+function tween(ms,fn){ return new Promise(r=>{ const t0=performance.now(); const step=n=>{ const k=Math.min(1,(n-t0)/ms); fn(k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2); if(k<1) requestAnimationFrame(step); else r(); }; requestAnimationFrame(step); }); }
+async function praiseAndThank(t, doneLine){ celebrate(); await say(pick(['e_welldone','e_super','e_helper'])); if(!live(t))return false; await say(doneLine); return live(t); }
+
+/* ============ NEW ART ============ */
+function excavator(x,y,s=1,boom=-35,fore=70){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="6" rx="200" ry="16" fill="#00000018"/>
+    <rect x="-170" y="-80" width="300" height="80" rx="40" fill="${C.dark}"/>
+    ${[-130,-65,0,65,100].map(cx=>`<circle cx="${cx}" cy="-40" r="26" fill="#4A4E69"/>`).join('')}
+    <rect x="-160" y="-180" width="250" height="100" rx="24" fill="${C.green}"/>
+    <rect x="-150" y="-300" width="140" height="130" rx="26" fill="${C.green}"/>
+    <rect x="-132" y="-282" width="104" height="80" rx="18" fill="#DDF3FF"/>
+    ${eyes(-80,-246,.9)}${smile(-80,-218,.9)}
+    <g class="boom" transform="translate(40 -170) rotate(${boom})">
+      <rect x="0" y="-20" width="250" height="40" rx="20" fill="${C.green}"/>
+      <circle cx="0" cy="0" r="26" fill="#2BA455"/>
+      <g class="fore" transform="translate(250 0) rotate(${fore})">
+        <rect x="0" y="-16" width="170" height="32" rx="16" fill="#2BA455"/>
+        <circle cx="0" cy="0" r="20" fill="${C.green}"/>
+        <path d="M160 -24 L230 -6 L214 60 Q180 76 150 40 Z" fill="${C.dark}"/>
+      </g>
+    </g>
+  </g>`;
+}
+function dumpTruck(x,y,s=1,tilt=0){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="6" rx="210" ry="16" fill="#00000018"/>
+    <rect x="-200" y="-120" width="400" height="66" rx="20" fill="#C8323E"/>
+    <g class="bed" transform="rotate(${-tilt} -200 -120)">
+      <path d="M-210 -270 L60 -270 L40 -120 L-190 -120 Z" fill="${C.red}"/>
+      <rect x="-190" y="-245" width="230" height="14" rx="7" fill="#ffffff55"/>
+    </g>
+    <rect x="70" y="-260" width="135" height="150" rx="28" fill="${C.red}"/>
+    <rect x="88" y="-242" width="98" height="70" rx="16" fill="#DDF3FF"/>
+    ${eyes(137,-208,.85)}${smile(137,-148,.85)}
+    ${wheel(-130,-48,42)}${wheel(-30,-48,42)}${wheel(140,-48,42)}
+  </g>`;
+}
+function sweeper(x,y,s=1){
+  const brush=cx=>`<g class="brush"><circle cx="${cx}" cy="-40" r="40" fill="#F4A261"/>${[0,45,90,135].map(a=>`<rect x="${cx-4}" y="-80" width="8" height="80" fill="#E07A1F" transform="rotate(${a} ${cx} -40)"/>`).join('')}</g>`;
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="6" rx="210" ry="16" fill="#00000018"/>
+    <rect x="-180" y="-230" width="250" height="140" rx="40" fill="${C.purple}"/>
+    <rect x="-150" y="-205" width="60" height="90" rx="20" fill="#ffffff44"/>
+    <rect x="40" y="-280" width="140" height="190" rx="30" fill="${C.purple}"/>
+    <rect x="58" y="-262" width="104" height="74" rx="16" fill="#DDF3FF"/>
+    ${eyes(110,-226,.85)}${smile(110,-164,.85)}
+    ${wheel(-110,-60,38)}${wheel(110,-60,38)}
+    ${brush(-160)}${brush(200)}
+  </g>`;
+}
+function cow(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="4" rx="150" ry="14" fill="#00000018"/>
+    ${[-90,-40,40,90].map(lx=>`<rect x="${lx-14}" y="-80" width="28" height="80" rx="12" fill="#EDEDED"/><rect x="${lx-14}" y="-14" width="28" height="14" rx="6" fill="${C.dark}"/>`).join('')}
+    <ellipse cx="0" cy="-130" rx="140" ry="80" fill="#fff"/>
+    <ellipse cx="-50" cy="-150" rx="40" ry="30" fill="${C.mud}"/><ellipse cx="60" cy="-110" rx="32" ry="24" fill="${C.mud}"/>
+    <path d="M-140 -140 q-40 30 -20 70" stroke="#fff" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <g transform="translate(140 -190)">
+      <path d="M-40 -55 q-20 -30 -5 -45 M40 -55 q20 -30 5 -45" stroke="#F2E2B8" stroke-width="14" fill="none" stroke-linecap="round"/>
+      <ellipse cx="-62" cy="-30" rx="26" ry="14" fill="#fff"/><ellipse cx="62" cy="-30" rx="26" ry="14" fill="#fff"/>
+      <ellipse cx="0" cy="0" rx="62" ry="68" fill="#fff"/>
+      <ellipse cx="0" cy="40" rx="50" ry="32" fill="#FFB5C2"/>
+      <circle cx="-16" cy="40" r="7" fill="#C76B7E"/><circle cx="16" cy="40" r="7" fill="#C76B7E"/>
+      ${eyes(0,-14,.8)}
+    </g>
+  </g>`;
+}
+function dog(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="4" rx="120" ry="12" fill="#00000018"/>
+    ${[-70,-30,40,80].map(lx=>`<rect x="${lx-13}" y="-70" width="26" height="70" rx="12" fill="#C68642"/>`).join('')}
+    <ellipse cx="0" cy="-110" rx="115" ry="60" fill="#D99A5B"/>
+    <path d="M-110 -120 q-50 -40 -30 -90" stroke="#D99A5B" stroke-width="22" fill="none" stroke-linecap="round"/>
+    <g transform="translate(110 -175)">
+      <ellipse cx="-58" cy="10" rx="24" ry="50" fill="#8D5524" transform="rotate(15 -58 10)"/>
+      <ellipse cx="58" cy="10" rx="24" ry="50" fill="#8D5524" transform="rotate(-15 58 10)"/>
+      <circle cx="0" cy="0" r="62" fill="#D99A5B"/>
+      <ellipse cx="0" cy="34" rx="36" ry="26" fill="#F3D2A8"/>
+      <ellipse cx="0" cy="20" rx="14" ry="10" fill="${C.dark}"/>
+      <path d="M-10 46 q10 10 20 0" stroke="${C.dark}" stroke-width="5" fill="none" stroke-linecap="round"/>
+      <path d="M-6 50 q6 22 12 0" fill="#FF6B81"/>
+      ${eyes(0,-18,.75)}
+    </g>
+  </g>`;
+}
+function elephant(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="4" rx="170" ry="16" fill="#00000018"/>
+    ${[-100,-45,45,100].map(lx=>`<rect x="${lx-24}" y="-100" width="48" height="100" rx="20" fill="#8E9AAF"/>`).join('')}
+    <ellipse cx="0" cy="-160" rx="160" ry="100" fill="#A7B2C4"/>
+    <path d="M-160 -170 q-30 10 -24 50" stroke="#A7B2C4" stroke-width="12" fill="none" stroke-linecap="round"/>
+    <g transform="translate(150 -210)">
+      <ellipse cx="-50" cy="10" rx="70" ry="85" fill="#8E9AAF"/>
+      <ellipse cx="-50" cy="10" rx="48" ry="62" fill="#FFB5C2" opacity=".55"/>
+      <circle cx="20" cy="0" r="75" fill="#A7B2C4"/>
+      <path d="M60 30 q40 60 10 120 q-10 20 10 26" stroke="#A7B2C4" stroke-width="34" fill="none" stroke-linecap="round"/>
+      ${eyes(30,-15,.8)}
+      <circle cx="-5" cy="30" r="10" fill="#FF9AA2" opacity=".7"/>
+    </g>
+  </g>`;
+}
+function sandPile(x,y,k=1){
+  return `<g transform="translate(${x} ${y}) scale(${k})">
+    <path d="M-230 0 Q-200 -170 0 -200 Q200 -170 230 0 Z" fill="#E8C27A"/>
+    <path d="M-150 -60 q20 -10 40 0 M40 -120 q20 -10 40 0 M80 -40 q20 -10 40 0" stroke="#C9A05A" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <circle cx="-60" cy="-120" r="10" fill="#C9A05A"/><circle cx="120" cy="-80" r="8" fill="#C9A05A"/>
+  </g>`;
+}
+function shapePath(kind,col,r=90,hole=false){
+  const fill = hole ? '#3B3F55' : C[col];
+  const op = hole ? ' opacity=".45"' : '';
+  if(kind==='circle') return `<circle cx="0" cy="0" r="${r}" fill="${fill}"${op}/>`;
+  if(kind==='square') return `<rect x="${-r*.88}" y="${-r*.88}" width="${r*1.76}" height="${r*1.76}" rx="${r*.18}" fill="${fill}"${op}/>`;
+  if(kind==='star'){ const pts=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*.5:r*1.1;pts.push(`${Math.cos(a)*rr},${Math.sin(a)*rr}`);} return `<polygon points="${pts.join(' ')}" fill="${fill}" stroke="${fill}" stroke-width="${r*.12}" stroke-linejoin="round"${op}/>`; }
+  if(kind==='heart') return `<path d="M0 ${r*.85} C${-r*1.4} ${-r*.05} ${-r*.75} ${-r*1.15} 0 ${-r*.45} C${r*.75} ${-r*1.15} ${r*1.4} ${-r*.05} 0 ${r*.85} Z" fill="${fill}"${op}/>`;
+  return `<path d="M0 ${-r*1.05} L${r} ${r*.75} L${-r} ${r*.75} Z" fill="${fill}" stroke="${fill}" stroke-width="${r*.22}" stroke-linejoin="round"${op}/>`;
+}
+function leaf(x,y,rot,col){
+  return `<g class="leaf" data-x="${x}" data-y="${y}" transform="translate(${x} ${y}) rotate(${rot})">
+    <path d="M0 -34 Q30 -10 0 34 Q-30 -10 0 -34 Z" fill="${col}"/><path d="M0 -30 L0 30" stroke="#00000033" stroke-width="4"/></g>`;
+}
+function butterfly(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})"><g class="flap">
+    <ellipse cx="-38" cy="-20" rx="40" ry="30" fill="${C.purple}"/><ellipse cx="38" cy="-20" rx="40" ry="30" fill="${C.purple}"/>
+    <ellipse cx="-30" cy="22" rx="28" ry="22" fill="${C.orange}"/><ellipse cx="30" cy="22" rx="28" ry="22" fill="${C.orange}"/>
+    <circle cx="-40" cy="-22" r="10" fill="#fff"/><circle cx="40" cy="-22" r="10" fill="#fff"/></g>
+    <rect x="-7" y="-40" width="14" height="80" rx="7" fill="${C.dark}"/>
+    <path d="M-4 -40 q-14 -24 -24 -26 M4 -40 q14 -24 24 -26" stroke="${C.dark}" stroke-width="4" fill="none"/>
+  </g>`;
+}
+function tree(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-22" y="-160" width="44" height="160" rx="16" fill="#8D5524"/>
+   <circle cx="0" cy="-210" r="100" fill="${C.green}"/><circle cx="-70" cy="-160" r="60" fill="#2BA455"/><circle cx="70" cy="-160" r="60" fill="#2BA455"/></g>`;
+}
+function flower(x,y,col,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})"><rect x="-5" y="-70" width="10" height="70" fill="${C.hill2}"/>
+   ${[0,72,144,216,288].map(a=>`<circle cx="${Math.cos(a*Math.PI/180)*20}" cy="${-80+Math.sin(a*Math.PI/180)*20}" r="16" fill="${col}"/>`).join('')}
+   <circle cx="0" cy="-80" r="12" fill="${C.yellow}"/></g>`;
+}
+
+/* ============ MORE ART for 30 stages ============ */
+function cat(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="4" rx="110" ry="12" fill="#00000018"/>
+    <path d="M80 -60 q70 -30 50 -120" stroke="#F4A261" stroke-width="22" fill="none" stroke-linecap="round"/>
+    <ellipse cx="0" cy="-70" rx="95" ry="70" fill="#F4A261"/>
+    ${[-55,-20,25,60].map(lx=>`<rect x="${lx-14}" y="-40" width="28" height="40" rx="12" fill="#E07A1F"/>`).join('')}
+    <g transform="translate(-60 -170)">
+      <path d="M-60 -30 L-50 -100 L-10 -55 Z M60 -30 L50 -100 L10 -55 Z" fill="#F4A261"/>
+      <path d="M-50 -40 L-45 -80 L-22 -55 Z M50 -40 L45 -80 L22 -55 Z" fill="#FFB5C2"/>
+      <circle cx="0" cy="0" r="72" fill="#F4A261"/>
+      <path d="M-20 -60 l8 20 M0 -66 l0 22 M20 -60 l-8 20" stroke="#E07A1F" stroke-width="7" stroke-linecap="round"/>
+      ${eyes(0,-6,.8)}
+      <path d="M-8 22 L8 22 L0 32 Z" fill="#FF6B81"/>
+      <path d="M0 32 q-12 14 -22 4 M0 32 q12 14 22 4" stroke="${C.dark}" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <path d="M-30 26 L-80 18 M-30 34 L-78 40 M30 26 L80 18 M30 34 L78 40" stroke="${C.dark}" stroke-width="3"/>
+    </g>
+  </g>`;
+}
+function duck(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="4" rx="110" ry="12" fill="#00000018"/>
+    <rect x="-40" y="-30" width="16" height="30" fill="${C.orange}"/><rect x="20" y="-30" width="16" height="30" fill="${C.orange}"/>
+    <path d="M-60 0 h40 M0 0 h40" stroke="${C.orange}" stroke-width="12" stroke-linecap="round"/>
+    <ellipse cx="0" cy="-90" rx="115" ry="70" fill="${C.yellow}"/>
+    <path d="M-30 -100 q40 -10 60 30 q-50 10 -60 -30 Z" fill="${C.yellowD}"/>
+    <path d="M-110 -100 l-30 -20 l10 40 Z" fill="${C.yellow}"/>
+    <g transform="translate(80 -190)">
+      <circle cx="0" cy="0" r="62" fill="${C.yellow}"/>
+      <path d="M40 4 q60 -6 70 14 q-30 22 -70 10 Z" fill="${C.orange}"/>
+      ${eyes(-6,-14,.75)}
+    </g>
+  </g>`;
+}
+function monkey(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="4" rx="110" ry="12" fill="#00000018"/>
+    <path d="M70 -60 q90 -10 60 -110 q-10 -30 -30 -10" stroke="#8D5524" stroke-width="18" fill="none" stroke-linecap="round"/>
+    <ellipse cx="0" cy="-80" rx="80" ry="80" fill="#8D5524"/>
+    <ellipse cx="0" cy="-70" rx="50" ry="55" fill="#E9C99F"/>
+    <rect x="-60" y="-30" width="30" height="30" rx="12" fill="#6B3F1A"/><rect x="30" y="-30" width="30" height="30" rx="12" fill="#6B3F1A"/>
+    <g transform="translate(0 -200)">
+      <circle cx="-78" cy="0" r="30" fill="#8D5524"/><circle cx="78" cy="0" r="30" fill="#8D5524"/>
+      <circle cx="-78" cy="0" r="16" fill="#E9C99F"/><circle cx="78" cy="0" r="16" fill="#E9C99F"/>
+      <circle cx="0" cy="0" r="72" fill="#8D5524"/>
+      <path d="M-50 -10 q25 -45 50 -10 q25 -35 50 10 q10 60 -50 70 q-60 -10 -50 -70 Z" fill="#E9C99F"/>
+      ${eyes(0,-6,.7)}
+      <path d="M-20 34 Q0 50 20 34" stroke="${C.dark}" stroke-width="5" fill="none" stroke-linecap="round"/>
+    </g>
+  </g>`;
+}
+function banana(x,y,s=1){
+  return `<g transform="translate(${x} ${y-120}) scale(${s})">
+    <path d="M-120 -40 Q-60 110 120 40 Q140 30 130 10 Q-20 70 -90 -60 Z" fill="${C.yellow}"/>
+    <path d="M-90 -60 Q-40 40 120 20" stroke="${C.yellowD}" stroke-width="8" fill="none"/>
+    <rect x="-130" y="-70" width="26" height="34" rx="8" fill="#6B8E23" transform="rotate(-20 -117 -53)"/>
+    <circle cx="128" cy="24" r="9" fill="#5C4A1E"/>
+    ${eyes(0,40,.6)}
+  </g>`;
+}
+function apple(x,y,s=1){
+  return `<g transform="translate(${x} ${y-120}) scale(${s})">
+    <path d="M0 -70 C-50 -110 -130 -80 -120 10 C-110 90 -40 120 0 95 C40 120 110 90 120 10 C130 -80 50 -110 0 -70 Z" fill="${C.red}"/>
+    <rect x="-6" y="-120" width="12" height="50" rx="6" fill="#8D5524"/>
+    <path d="M6 -100 q50 -40 80 -10 q-40 30 -80 10 Z" fill="${C.green}"/>
+    <ellipse cx="-60" cy="-30" rx="18" ry="30" fill="#ffffff55"/>
+    ${eyes(0,10,.65)}${smile(0,40,.6)}
+  </g>`;
+}
+function mango(x,y,s=1){
+  return `<g transform="translate(${x} ${y-120}) scale(${s})">
+    <path d="M-20 -100 C80 -120 140 -10 100 60 C60 120 -60 120 -100 50 C-130 -10 -100 -90 -20 -100 Z" fill="#FFB627"/>
+    <path d="M60 -60 C110 -20 120 40 90 80" stroke="#FF8A3D" stroke-width="30" fill="none" opacity=".55" stroke-linecap="round"/>
+    <path d="M-30 -100 q-30 -50 10 -60 q30 30 -10 60 Z" fill="${C.green}"/>
+    ${eyes(0,0,.65)}${smile(0,30,.6)}
+  </g>`;
+}
+function numberCard(n,x,y,s=1){
+  const dots=Array.from({length:n},(_,i)=>`<circle cx="${(i-(n-1)/2)*48}" cy="70" r="18" fill="#fff"/>`).join('');
+  const col=[C.red,C.blue,C.green][n-1]||C.purple;
+  return `<g transform="translate(${x} ${y-180}) scale(${s})">
+    <rect x="-125" y="-150" width="250" height="270" rx="40" fill="${col}"/>
+    <text x="0" y="20" text-anchor="middle" font-size="200" font-weight="900" fill="#fff">${n}</text>
+    ${dots}
+  </g>`;
+}
+function box(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <rect x="-110" y="-200" width="220" height="200" rx="14" fill="#D4A373"/>
+    <rect x="-110" y="-200" width="220" height="40" fill="#C08552"/>
+    <rect x="-20" y="-200" width="40" height="200" fill="#F2E2B8" opacity=".8"/>
+    ${eyes(0,-90,.7)}${smile(0,-60,.6)}
+  </g>`;
+}
+function tower(x,y,blocks){
+  const cols=[C.red,C.blue,C.yellow,C.green,C.purple,C.orange];
+  let g='';for(let i=0;i<blocks;i++) g+=`<rect x="-80" y="${-(i+1)*100}" width="160" height="96" rx="16" fill="${cols[i%6]}"/>`;
+  return `<g transform="translate(${x} ${y})">${g}${eyes(0,-blocks*100+48,.6)}</g>`;
+}
+function bucket(x,y,full){
+  return `<g transform="translate(${x} ${y})">
+    <path d="M-120 -230 L120 -230 L95 0 L-95 0 Z" fill="${C.blue}"/>
+    <ellipse cx="0" cy="-230" rx="120" ry="30" fill="${full?'#E8C27A':'#1B4F8A'}"/>
+    ${full?`<path d="M-110 -236 Q-40 -300 0 -260 Q50 -310 110 -236 Z" fill="#E8C27A"/><circle cx="-30" cy="-262" r="8" fill="#C9A05A"/><circle cx="40" cy="-270" r="7" fill="#C9A05A"/>`:''}
+    <path d="M-120 -230 Q0 -380 120 -230" stroke="${C.dark}" stroke-width="10" fill="none"/>
+    ${eyes(0,-120,.7)}${smile(0,-85,.6)}
+  </g>`;
+}
+function car(x,y,color,dirty=false,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="6" rx="170" ry="14" fill="#00000018"/>
+    <path d="M-170 -60 Q-170 -120 -110 -120 L-70 -190 Q-60 -200 -40 -200 L70 -200 Q90 -200 100 -190 L140 -120 Q170 -120 170 -60 L170 -40 L-170 -40 Z" fill="${C[color]}"/>
+    <path d="M-55 -180 L-20 -180 L-20 -125 L-90 -125 Z M5 -180 L80 -180 L115 -125 L5 -125 Z" fill="#DDF3FF"/>
+    ${eyes(40,-155,.55)}
+    ${wheel(-100,-40,40)}${wheel(100,-40,40)}
+    <g class="mud" style="transition:opacity 1s">${dirty?`<circle cx="-120" cy="-80" r="30" fill="${C.mud}"/><circle cx="-30" cy="-70" r="24" fill="${C.mud2}"/><circle cx="70" cy="-90" r="28" fill="${C.mud}"/><circle cx="140" cy="-70" r="18" fill="${C.mud2}"/><circle cx="0" cy="-150" r="20" fill="${C.mud}"/><circle cx="-60" cy="-150" r="14" fill="${C.mud2}"/>`:''}</g>
+  </g>`;
+}
+function bus(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <ellipse cx="0" cy="6" rx="330" ry="18" fill="#00000018"/>
+    <rect x="-320" y="-300" width="640" height="250" rx="40" fill="${C.yellow}"/>
+    <rect x="-320" y="-130" width="640" height="24" fill="${C.dark}"/>
+    ${[-260,-150,-40,70].map(wx=>`<rect x="${wx}" y="-270" width="90" height="90" rx="14" fill="#DDF3FF"/>`).join('')}
+    <rect x="190" y="-270" width="100" height="120" rx="14" fill="#DDF3FF"/>
+    ${eyes(240,-220,.75)}
+    <text x="-70" y="-60" text-anchor="middle" font-size="50" font-weight="900" fill="${C.dark}">SCHOOL</text>
+    ${wheel(-200,-50,50)}${wheel(200,-50,50)}
+  </g>`;
+}
+function train(x,y,s=1){
+  const coach=(cx,col)=>`<rect x="${cx-130}" y="-230" width="260" height="170" rx="24" fill="${col}"/><rect x="${cx-100}" y="-205" width="80" height="70" rx="12" fill="#DDF3FF"/><rect x="${cx+20}" y="-205" width="80" height="70" rx="12" fill="#DDF3FF"/>${wheel(cx-80,-50,34)}${wheel(cx+80,-50,34)}`;
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <rect x="-700" y="-30" width="1400" height="14" fill="#8D5524"/>
+    ${coach(-420,C.blue)}${coach(-140,C.green)}
+    <rect x="20" y="-250" width="330" height="190" rx="30" fill="${C.red}"/>
+    <rect x="210" y="-340" width="140" height="120" rx="20" fill="${C.red}"/>
+    <rect x="225" y="-325" width="110" height="70" rx="12" fill="#DDF3FF"/>
+    ${eyes(280,-292,.6)}
+    <rect x="60" y="-330" width="60" height="90" rx="10" fill="${C.dark}"/>
+    ${wheel(90,-50,44)}${wheel(280,-50,44)}
+  </g>`;
+}
+function plane(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <path d="M-60 -20 L60 -20 L-60 140 L-130 140 Z" fill="${C.blue}"/>
+    <rect x="-330" y="-90" width="620" height="140" rx="70" fill="#fff"/>
+    <path d="M-320 -60 L-380 -200 L-300 -200 L-230 -80 Z" fill="${C.red}"/>
+    <path d="M-60 0 L80 0 L-80 -170 L-150 -170 Z" fill="${C.blue}"/>
+    ${[-200,-120,-40,40,120].map(wx=>`<circle cx="${wx}" cy="-30" r="20" fill="#DDF3FF"/>`).join('')}
+    <path d="M220 -80 Q300 -60 290 -20 L220 -20 Z" fill="#DDF3FF"/>
+    ${eyes(200,-45,.5)}
+  </g>`;
+}
+function brick(x,y,s=1){
+  return `<g transform="translate(${x} ${y}) scale(${s})">
+    <rect x="-100" y="-110" width="200" height="110" rx="14" fill="#C0583A"/>
+    <path d="M-100 -55 h200 M0 -110 v55 M-50 -55 v55 M50 -55 v55" stroke="#A3442B" stroke-width="8"/>
+    ${eyes(0,-75,.5)}
+  </g>`;
+}
+
+/* ============ ITEM REGISTRY (what can be asked for) ============ */
+const ITEMS = {};
+['red','blue','yellow','green','orange','purple','pink'].forEach(c=>{
+  ITEMS['h_'+c]={draw:(x,y,s)=>`<g transform="translate(${x} ${y}) scale(${s})">${house(0,0,c,'',true)}</g>`, prompt:'tap_'+c, yes:'yes_'+c, wash:true};
+  ITEMS['car_'+c]={draw:(x,y,s)=>car(x,y,c,true,s*.92), prompt:'car_'+c, yes:'yes_'+c, wash:true};
+});
+[1,2,3].forEach(n=>ITEMS['n'+n]={draw:(x,y,s)=>numberCard(n,x,y,s), prompt:'find_'+n, yes:'yes_'+n});
+Object.assign(ITEMS,{
+  bigball:{draw:(x,y)=>ball(x,y,150,'red',''), prompt:'lift_big', yes:'yes_big'},
+  smallball:{draw:(x,y)=>ball(x,y,60,'red',''), prompt:'lift_small', yes:'yes_small'},
+  bigbox:{draw:(x,y)=>box(x,y,1.35), prompt:'lift_bigbox', yes:'yes_big'},
+  smallbox:{draw:(x,y)=>box(x,y,.55), prompt:'lift_smallbox', yes:'yes_small'},
+  bigcow:{draw:(x,y)=>cow(x,y,1.05), prompt:'lift_bigcow', yes:'yes_big'},
+  smallcow:{draw:(x,y)=>cow(x,y,.48), prompt:'lift_smallcow', yes:'yes_small'},
+  tall:{draw:(x,y)=>tower(x,y,5), prompt:'lift_tall', yes:'yes_tall'},
+  short:{draw:(x,y)=>tower(x,y,2), prompt:'lift_short', yes:'yes_short'},
+  full:{draw:(x,y)=>bucket(x,y,true), prompt:'lift_full', yes:'yes_full'},
+  empty:{draw:(x,y)=>bucket(x,y,false), prompt:'lift_empty', yes:'yes_empty'},
+  w_cow:{draw:(x,y,s)=>cow(x,y,.8*s), prompt:'who_moo', yes:'d_cow'},
+  w_dog:{draw:(x,y,s)=>dog(x,y,.95*s), prompt:'who_woof', yes:'d_dog'},
+  w_cat:{draw:(x,y,s)=>cat(x,y,.95*s), prompt:'who_meow', yes:'d_cat'},
+  w_duck:{draw:(x,y,s)=>duck(x,y,.95*s), prompt:'who_quack', yes:'d_duck'},
+  f_banana:{draw:(x,y,s)=>banana(x,y,s), prompt:'find_banana', yes:'d_banana'},
+  f_apple:{draw:(x,y,s)=>apple(x,y,s), prompt:'find_apple', yes:'d_apple'},
+  f_mango:{draw:(x,y,s)=>mango(x,y,s), prompt:'find_mango', yes:'d_mango'},
+});
+const SHAPECOL={circle:'red',square:'blue',triangle:'yellow',star:'purple',heart:'pink'};
+['circle','square','triangle','star','heart'].forEach(k=>ITEMS['s_'+k]={draw:(x,y,s)=>`<g transform="translate(${x} ${y-170}) scale(${s})">${shapePath(k,SHAPECOL[k],120)}</g>`, prompt:'find_'+k, yes:'p_'+k});
+const REVEAL={ cow:[cow,.95,'d_cow'], dog:[dog,1.05,'d_dog'], elephant:[elephant,.85,'d_elephant'], cat:[cat,1.05,'d_cat'], duck:[duck,1.05,'d_duck'], monkey:[monkey,1.05,'d_monkey'],
+  banana:[banana,1.2,'d_banana'], apple:[apple,1.2,'d_apple'], mango:[mango,1.2,'d_mango'] };
+
+/* ============ THE 30 STAGES ============ */
+const WORLDS=[
+  {id:'boulder',name:'Boulder',color:'orange',topic:'Counting',draw:(x,y,s)=>bulldozer(x,y,s)},
+  {id:'splash',name:'Splash',color:'blue',topic:'Colours',draw:(x,y,s)=>tanker(x,y,s*.92)},
+  {id:'stretch',name:'Stretch',color:'yellow',topic:'Big & small',draw:(x,y,s)=>craneTruck(x+30,y,s*.8,-50,60)},
+  {id:'digby',name:'Digby',color:'green',topic:'Animals & fruits',draw:(x,y,s)=>excavator(x-30,y,s*.95)},
+  {id:'tipper',name:'Tipper',color:'red',topic:'Shapes',draw:(x,y,s)=>dumpTruck(x,y,s)},
+  {id:'sweepy',name:'Sweepy',color:'purple',topic:'Clean & discover',draw:(x,y,s)=>sweeper(x,y,s)},
+];
+const pairs=(a,b)=>[{items:[a,b],target:a},{items:[a,b],target:b},{items:[a,b],target:pick([a,b])}];
+const board=(keys)=>({board:keys});
+const STAGES={
+  boulder:[
+    {type:'count',obj:'rock',n:2,intro:'b_intro'},
+    {type:'count',obj:'rock',n:3,intro:'cnt_rocks'},
+    {type:'count',obj:'rock',n:4,intro:'cnt_rocks'},
+    {type:'count',obj:'rock',n:5,intro:'cnt_rocks'},
+    {type:'find',intro:'num_intro',action:'pop',...board(['n1','n2','n3'])},
+  ],
+  splash:[
+    {type:'find',intro:'s_intro',action:'wash',...board(['h_red','h_blue'])},
+    {type:'find',intro:'col_intro',action:'wash',...board(['h_red','h_blue','h_yellow'])},
+    {type:'find',intro:'col_intro',action:'wash',...board(['h_red','h_blue','h_yellow','h_green'])},
+    {type:'find',intro:'col_intro',action:'wash',...board(['h_orange','h_purple','h_pink','h_green'])},
+    {type:'find',intro:'col_intro',action:'wash',...board(['car_red','car_blue','car_yellow','car_orange'])},
+  ],
+  stretch:[
+    {type:'find',intro:'c_intro',action:'lift',rounds:()=>pairs('bigball','smallball')},
+    {type:'find',intro:'size_intro',action:'lift',rounds:()=>pairs('bigbox','smallbox')},
+    {type:'find',intro:'size_intro',action:'lift',rounds:()=>pairs('bigcow','smallcow')},
+    {type:'find',intro:'size_intro',action:'lift',rounds:()=>pairs('tall','short')},
+    {type:'find',intro:'size_intro',action:'lift',rounds:()=>pairs('full','empty')},
+  ],
+  digby:[
+    {type:'dig',intro:'d_intro',items:['cow','dog','elephant']},
+    {type:'dig',intro:'d_intro',items:['cat','duck','monkey']},
+    {type:'find',intro:'ani_intro',action:'pop',...board(['w_cow','w_dog','w_cat','w_duck'])},
+    {type:'dig',intro:'fruit_dig_intro',items:['banana','apple','mango']},
+    {type:'find',intro:'fruit_intro',action:'pop',...board(['f_banana','f_apple','f_mango'])},
+  ],
+  tipper:[
+    {type:'holes',intro:'p_intro',shapes:['circle','square','triangle']},
+    {type:'count',obj:'brick',n:3,intro:'cnt_bricks'},
+    {type:'find',intro:'shape_intro',action:'pop',...board(['s_circle','s_square','s_triangle'])},
+    {type:'holes',intro:'p_intro',shapes:['circle','square','triangle','star']},
+    {type:'find',intro:'shape_intro',action:'pop',...board(['s_star','s_heart','s_square','s_circle'])},
+  ],
+  sweepy:[
+    {type:'rub',cover:'leaves',reveal:'butterfly',intro:'w_intro',done:'w_done'},
+    {type:'rub',cover:'dust',reveal:'bus',intro:'rub_bus',done:'done_bus'},
+    {type:'rub',cover:'mud',reveal:'car',intro:'rub_car',done:'done_car'},
+    {type:'rub',cover:'sand',reveal:'train',intro:'rub_train',done:'done_train'},
+    {type:'rub',cover:'cloud',reveal:'plane',intro:'rub_plane',done:'done_plane'},
+  ],
+};
+
+/* ============ SAVED PROGRESS (stays on this device) ============ */
+const SAVE_KEY='tinkertown_manik_v2';
+let SAVE={stars:{},story:false};
+try{ const r=localStorage.getItem(SAVE_KEY); if(r) SAVE=Object.assign(SAVE,JSON.parse(r)); }catch(e){}
+function persist(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE)); }catch(e){} }
+const starKey=(w,i)=>`${w}-${i}`;
+const worldStars=w=>STAGES[w].filter((_,i)=>SAVE.stars[starKey(w,i)]).length;
+const totalStars=()=>Object.keys(SAVE.stars).length;
+
+/* ============ SCREEN FLOW ============ */
+function titleScene(){
+  homeBtn.style.display='none'; hideSub();
+  setScene(`${backdrop()}${road()}
+    <text x="800" y="170" text-anchor="middle" font-size="110" font-weight="900" fill="${C.purple}" stroke="#fff" stroke-width="14" paint-order="stroke">Tinkertown</text>
+    <text x="800" y="250" text-anchor="middle" font-size="58" font-weight="800" fill="${C.dark}">${KID}'s Fix-It Crew</text>
+    <g class="bob">${tara(300,760,1.15)}</g>
+    ${bulldozer(1280,800,.8)}
+    <g id="play" class="tap"><g class="pulse"><circle cx="800" cy="530" r="160" fill="${C.green}"/><circle cx="800" cy="530" r="160" fill="none" stroke="#fff" stroke-width="14"/>
+      <path d="M752 450 L885 530 L752 610 Z" fill="#fff" stroke="#fff" stroke-width="18" stroke-linejoin="round"/></g></g>`);
+  $('play').onclick = ()=>{ sfx('pop'); enterLock(); try{speechSynthesis.getVoices();}catch(e){} introScene(); };
+}
+async function introScene(){
+  const t=setScene(`${backdrop(false)}${road()}
+    ${rock(350,780,70,'r0')}${rock(1250,790,60,'r1')}
+    <g class="bob">${grumble(1150,220,1)}</g>
+    ${[0,1,2,3,4,5].map(i=>`<rect class="drop" style="animation-delay:${i*.15}s" x="${1060+i*40}" y="310" width="8" height="30" rx="4" fill="#6B7A90"/>`).join('')}
+    <g class="bob">${tara(420,760,1.15)}</g>`);
+  homeBtn.style.display='flex';
+  await say('hello_m'); if(!live(t))return;
+  await say('ohno'); if(!live(t))return;
+  menuScene();
+}
+function wcard(cx,cy,w){
+  const n=worldStars(w.id), W=460,H=330;
+  const stars=Array.from({length:5},(_,i)=>star(cx-120+i*60,cy+H/2-36,22,i<n?C.yellow:'#E3E6EE')).join('');
+  return `<g id="m_${w.id}" class="tap"><g class="${n<5?'pulse':''}">
+    <rect x="${cx-W/2}" y="${cy-H/2}" width="${W}" height="${H}" rx="46" fill="#fff"/>
+    <rect x="${cx-W/2}" y="${cy-H/2}" width="${W}" height="${H}" rx="46" fill="none" stroke="${C[w.color]}" stroke-width="14"/>
+    ${w.draw(cx,cy+40,.5)}
+    <text x="${cx}" y="${cy+H/2-74}" text-anchor="middle" font-size="44" font-weight="900" fill="${C.dark}">${w.name}</text>
+    ${stars}
+  </g></g>`;
+}
+async function menuScene(){
+  if(totalStars()>=30 && !SAVE.champion){ SAVE.champion=true; persist(); return finaleScene(true); }
+  if(!SAVE.story && WORLDS.every(w=>worldStars(w.id)>0)){ SAVE.story=true; persist(); return finaleScene(false); }
+  const pos=[[285,255],[800,255],[1315,255],[285,610],[800,610],[1315,610]];
+  const t=setScene(`${backdrop()}
+    ${WORLDS.map((w,i)=>wcard(pos[i][0],pos[i][1],w)).join('')}
+    <g pointer-events="none"><rect x="640" y="808" width="320" height="76" rx="38" fill="#fff"/>${star(700,846,28)}
+    <text x="830" y="866" text-anchor="middle" font-size="46" font-weight="900" fill="${C.dark}">${totalStars()} / 30</text></g>`);
+  wireFun();
+  WORLDS.forEach(w=>$('m_'+w.id).onclick=()=>{sfx('honk');stageMap(w.id);});
+  await say('pick_m');
+}
+async function stageMap(wid){
+  const w=WORLDS.find(x=>x.id===wid);
+  const next=STAGES[wid].findIndex((_,i)=>!SAVE.stars[starKey(wid,i)]);
+  const xs=[240,520,800,1080,1360];
+  const t=setScene(`${backdrop()}${road(800)}
+    <g class="honk">${w.draw(800,880,.55)}</g>
+    <path d="M240 470 C380 330 380 610 520 470 S660 330 800 470 S940 610 1080 470 S1220 330 1360 470" stroke="#fff" stroke-width="18" stroke-dasharray="4 30" stroke-linecap="round" fill="none"/>
+    ${STAGES[wid].map((_,i)=>{const done=SAVE.stars[starKey(wid,i)]; const nx=i===next;
+      return `<g id="st${i}" class="tap"><g class="${nx?'pulse':''}">
+        <circle cx="${xs[i]}" cy="470" r="112" fill="${done?C.yellow:'#fff'}" stroke="${C[w.color]}" stroke-width="14"/>
+        ${done?star(xs[i],470,70,'#fff'):`<text x="${xs[i]}" y="508" text-anchor="middle" font-size="110" font-weight="900" fill="${C[w.color]}">${i+1}</text>`}
+      </g></g>`;}).join('')}`);
+  wireFun();
+  STAGES[wid].forEach((_,i)=>$('st'+i).onclick=()=>{sfx('pop');playStage(wid,i);});
+  await say('stage_pick');
+}
+function playStage(wid,i){
+  const st=STAGES[wid][i]; const ctx={wid,i,st};
+  ({count:countStage, find:findStage, dig:digStage, holes:holesStage, rub:rubStage})[st.type](ctx);
+}
+async function winStage(ctx,t){
+  celebrate();
+  svg.insertAdjacentHTML('beforeend',`<g pointer-events="none" class="pop">
+    <rect x="420" y="330" width="760" height="230" rx="60" fill="#fff" stroke="${C.yellow}" stroke-width="14"/>
+    ${star(540,445,70)}${star(1060,445,70)}
+    <text x="800" y="480" text-anchor="middle" font-size="96" font-weight="900" fill="${C.purple}">Yay ${KID}!</text></g>`);
+  SAVE.stars[starKey(ctx.wid,ctx.i)]=true; persist();
+  await say(pick(['win1','win2','win3','win4','win5'])); if(!live(t)) return;
+  await sleep(500); if(!live(t)) return;
+  if(totalStars()>=30 || (!SAVE.story && WORLDS.every(w=>worldStars(w.id)>0))) return menuScene();
+  stageMap(ctx.wid);
+}
+function mascot(wid,x=150,y=890,s=.38){ const w=WORLDS.find(q=>q.id===wid); return `<g class="honk">${w.draw(x,y,s)}</g>`; }
+
+/* ---- ENGINE 1: tap & count (rocks or bricks) ---- */
+async function countStage(ctx){
+  const {n,obj,intro}=ctx.st, isBrick=obj==='brick';
+  const span=isBrick?[620,1480]:[560,1480];
+  const xs=Array.from({length:n},(_,i)=> n===1?1000:span[0]+i*(span[1]-span[0])/(n-1));
+  const objs=xs.map((x,i)=>isBrick
+    ? `<g id="k${i}" class="tap obj"><g class="rbody">${brick(x,820,1.25)}</g><rect x="${x-125}" y="660" width="250" height="200" fill="transparent"/></g>`
+    : `<g id="k${i}" class="tap obj"><g class="rbody">${rock(x,815,n>4?88:100,'')}</g><rect x="${x-125}" y="620" width="250" height="240" fill="transparent"/></g>`).join('');
+  const t=setScene(`${backdrop()}${road(isBrick?790:760)}
+    <g id="mach" style="transition:transform 1s ease-in-out"><g class="honk">${isBrick?dumpTruck(0,880,.75):bulldozer(0,830,.85)}</g></g>
+    ${objs}<g id="num"></g>`);
+  wireFun();
+  const mach=$('mach'); mach.style.transform='translateX(-400px)';
+  await sleep(50); mach.style.transform=`translateX(${isBrick?230:220}px)`; sfx('vroom');
+  let count=0, busy=true;
+  await say(intro); if(!live(t))return; busy=false;
+  const words=['one','two','three','four','five'];
+  xs.forEach((x,i)=>{
+    const el=$('k'+i); el.firstElementChild.classList.add('pulse');
+    el.onclick=async()=>{
+      if(busy||el.dataset.gone)return; busy=true; el.dataset.gone=1; el.firstElementChild.classList.remove('pulse');
+      if(isBrick){
+        sfx('pop'); el.style.transition='transform .8s ease-in, opacity .8s';
+        el.style.transform=`translate(${230-x+40}px,-170px) scale(.4)`; el.style.transformOrigin=`${x}px 760px`;
+        setTimeout(()=>{el.style.opacity=0},500);
+      } else {
+        mach.style.transform=`translateX(${x-260}px)`; sfx('vroom');
+        await sleep(900); if(!live(t))return;
+        el.style.transition='transform 1s ease-in, opacity 1s'; el.style.transform='translate(700px,-40px) rotate(200deg)'; el.style.opacity=0; sfx('pop');
+      }
+      count++;
+      $('num').innerHTML=`<g class="pop"><circle cx="800" cy="360" r="120" fill="${C.orange}"/><text x="800" y="412" text-anchor="middle" font-size="160" font-weight="900" fill="#fff">${count}</text></g>`;
+      await say(words[count-1]); if(!live(t))return;
+      if(count===n) return winStage(ctx,t);
+      busy=false;
+    };
+  });
+}
+
+/* ---- ENGINE 2: find the one Tara asks for (colours, numbers, sizes, animals, fruits, shapes) ---- */
+async function findStage(ctx){
+  const st=ctx.st;
+  const rounds = st.rounds ? st.rounds() : null;
+  const keys = st.board ? [...st.board].sort(()=>Math.random()-.5) : null;
+  const order = st.board ? [...st.board].sort(()=>Math.random()-.5) : null;
+  const t0=sceneToken+1; let first=true;
+  const slots=n=>({2:[520,1080],3:[340,800,1260],4:[250,617,983,1350]})[n];
+  const scaleFor=n=>({2:1.45,3:1.3,4:1.08})[n];
+  let t;
+  function draw(list){
+    const xs=slots(list.length), sc=scaleFor(list.length), cw=1500/list.length;
+    t=setScene(`${backdrop()}<rect x="0" y="790" width="1600" height="110" fill="${C.hill2}"/>
+      ${list.map((k,i)=>`<g id="c_${k}" class="tap choice" data-k="${k}"><g class="cbody">${ITEMS[k].draw(xs[i],840,sc)}</g>
+        <rect x="${xs[i]-cw/2+8}" y="260" width="${cw-16}" height="620" fill="transparent"/></g>`).join('')}
+      <g id="fx"></g>${mascot(ctx.wid,120,895,.3)}`);
+    wireFun();
+    return xs;
+  }
+  async function act(el,k){
+    const bb=el.querySelector('.cbody').getBBox();
+    if(st.action==='wash'){
+      $('fx').innerHTML=Array.from({length:16},(_,i)=>`<circle class="drop" style="animation-delay:${(i%8)*.1}s" cx="${bb.x+bb.width*((i%8)/7)}" cy="${bb.y-40+(i%2)*30}" r="13" fill="${C.blue}" opacity=".85"/>`).join('');
+      sfx('splash'); await sleep(500); el.querySelectorAll('.mud').forEach(m=>m.style.opacity=0); await sleep(700); $('fx').innerHTML='';
+    } else if(st.action==='lift'){
+      const cx=bb.x+bb.width/2, top=bb.y;
+      $('fx').innerHTML=`<g id="hook"><line x1="${cx}" y1="-20" x2="${cx}" y2="${top-40}" stroke="${C.dark}" stroke-width="8"/><path d="M${cx-18} ${top-40} q0 36 22 36 q20 0 20 -20" stroke="${C.dark}" stroke-width="12" fill="none" stroke-linecap="round"/></g>`;
+      const hook=$('hook'); hook.style.transform='translateY(-700px)'; hook.style.transition='transform .6s ease-out';
+      await sleep(30); hook.style.transform='translateY(0)'; sfx('lift'); await sleep(650);
+      hook.style.transition=el.style.transition='transform 1.4s ease-in-out'; hook.style.transform=el.style.transform='translateY(-260px)';
+      await sleep(900);
+    } else {
+      const b=el.querySelector('.cbody'); b.classList.remove('hop','pulse','wiggle'); void b.getBBox(); b.classList.add('hop'); sfx('ding');
+    }
+    svg.insertAdjacentHTML('beforeend',`<g class="pop" pointer-events="none">${star(bb.x+bb.width/2,Math.max(150,bb.y-30),46)}</g>`);
+  }
+  function ask(targetKey,onDone){
+    let busy=true;
+    (async()=>{ if(first){ first=false; await say(st.intro); if(!live(t))return; } await say(ITEMS[targetKey].prompt); if(live(t)) busy=false; })();
+    svg.querySelectorAll('.choice').forEach(el=>{
+      el.onclick=async()=>{
+        const k=el.dataset.k; if(busy||el.dataset.done) return;
+        if(k!==targetKey){ busy=true; const b=el.querySelector('.cbody'); b.classList.remove('wiggle'); void b.getBBox(); b.classList.add('wiggle'); sfx('boing');
+          await say('look_again'); if(!live(t))return; $('c_'+targetKey).querySelector('.cbody').classList.add('pulse'); busy=false; return; }
+        busy=true; el.dataset.done=1; el.querySelector('.cbody').classList.remove('pulse');
+        await act(el,k); if(!live(t))return;
+        await say(ITEMS[k].yes); if(!live(t))return;
+        onDone();
+      };
+    });
+  }
+  if(st.board){
+    draw(keys); let step=0;
+    const next=()=>{ if(step>=order.length) return winStage(ctx,t); const k=order[step++]; ask(k,next); };
+    next();
+  } else {
+    let r=0;
+    const next=()=>{ if(r>=rounds.length) return winStage(ctx,t); const rd=rounds[r++]; draw([...rd.items].sort(()=>Math.random()-.5)); ask(rd.target,next); };
+    next();
+  }
+}
+
+/* ---- ENGINE 3: dig up hidden animals / fruits ---- */
+async function digStage(ctx){
+  const st=ctx.st;
+  const t=setScene(`${backdrop()}
+    <rect x="0" y="720" width="1600" height="180" fill="#F2D49B"/>
+    <g id="digger" class="honk">${excavator(300,870,.9)}</g>
+    <g id="pileWrap" class="tap"></g><g id="found"></g><g id="dust"></g>`);
+  wireFun();
+  const boom=svg.querySelector('#digger .boom'), fore=svg.querySelector('#digger .fore');
+  const setArm=(b,f)=>{ boom.setAttribute('transform',`translate(40 -170) rotate(${b})`); fore.setAttribute('transform',`translate(250 0) rotate(${f})`); };
+  let busy=true;
+  await say(st.intro); if(!live(t))return;
+  for(let i=0;i<st.items.length;i++){
+    const [draw,sc,line]=REVEAL[st.items[i]];
+    const wrap=$('pileWrap'); let taps=0;
+    const hit=`<rect x="700" y="480" width="800" height="420" fill="transparent"/>`;
+    wrap.innerHTML=`<g class="pop">${sandPile(1080,880,1.35)}</g>${hit}`;
+    if(i>0){ await say('d_more'); if(!live(t))return; }
+    busy=false;
+    await new Promise(resolve=>{
+      wrap.onclick=async()=>{
+        if(busy) return; busy=true; taps++;
+        await tween(240,k=>setArm(-35+k*25,70+k*40)); sfx('pop');
+        $('dust').innerHTML=Array.from({length:12},(_,j)=>`<circle class="floaty" style="animation-delay:${j*.03}s" cx="${900+Math.random()*360}" cy="${700+Math.random()*100}" r="${12+Math.random()*16}" fill="#E8C27A"/>`).join('');
+        wrap.innerHTML=`${sandPile(1080,880,Math.max(1.35-taps*0.42,.05))}${hit}`;
+        await tween(240,k=>setArm(-10-k*25,110-k*40));
+        if(!live(t)) return;
+        if(taps>=3){ wrap.innerHTML=''; wrap.onclick=null; resolve(); } else busy=false;
+      };
+    });
+    if(!live(t))return;
+    $('found').innerHTML=`<g id="ani" class="tap"><g class="pop">${draw(1080,880,sc)}</g></g>`; sfx('ding');
+    $('ani').onclick=()=>{ const a=$('ani').firstElementChild; a.classList.remove('hop','pop'); void a.getBBox(); a.classList.add('hop'); if(voiceIdle()) say(line); };
+    await say(line); if(!live(t))return;
+    await sleep(1000); if(!live(t))return;
+    const a=$('ani'); a.style.transition='transform 1s ease-in, opacity 1s'; a.style.transform='translateX(700px)'; a.style.opacity=0;
+    await sleep(700); if(!live(t))return; $('found').innerHTML=''; busy=true;
+  }
+  winStage(ctx,t);
+}
+
+/* ---- ENGINE 4: shapes into holes (drag or just tap) ---- */
+async function holesStage(ctx){
+  const kinds=ctx.st.shapes, n=kinds.length, r=n>3?92:105;
+  const bx=n>3?[340,647,953,1260]:[440,800,1160];
+  const holeX=[...bx].sort(()=>Math.random()-.5), homeX=[...bx].sort(()=>Math.random()-.5);
+  const holes={}, homes={};
+  kinds.forEach((k,i)=>{holes[k]={x:holeX[i],y:440}; homes[k]={x:homeX[i],y:760};});
+  const t=setScene(`${backdrop()}
+    <rect x="160" y="290" width="1280" height="300" rx="44" fill="#C99A5B"/>
+    <rect x="160" y="290" width="1280" height="300" rx="44" fill="none" stroke="#A97B3F" stroke-width="12"/>
+    ${kinds.map(k=>`<g id="hole_${k}" transform="translate(${holes[k].x} ${holes[k].y})"><g class="hin">${shapePath(k,SHAPECOL[k],r+10,true)}</g></g>`).join('')}
+    <rect x="0" y="640" width="1600" height="260" fill="#F2D49B"/>
+    <g id="truck"><g class="honk">${dumpTruck(110,900,.42)}</g></g>
+    <g id="shapes">${kinds.map(k=>`<g id="sh_${k}" class="shape tap" data-k="${k}" transform="translate(${homes[k].x} ${homes[k].y})"><g class="pop">${shapePath(k,SHAPECOL[k],r)}</g><circle r="${r+40}" fill="transparent"/></g>`).join('')}</g>`);
+  wireFun(); sfx('pop');
+  let busy=true, placed=0;
+  await say(ctx.st.intro); if(!live(t))return; busy=false;
+  const moveTo=(el,x,y)=>el.setAttribute('transform',`translate(${x} ${y})`);
+  const pos=el=>{const m=el.getAttribute('transform').match(/translate\(([-\d.]+) ([-\d.]+)\)/); return {x:+m[1],y:+m[2]};};
+  const glide=async(el,x,y,ms=420)=>{const p=pos(el); await tween(ms,k=>moveTo(el,p.x+(x-p.x)*k,p.y+(y-p.y)*k));};
+  async function ok(el,k){
+    busy=true; el.dataset.done=1; el.style.pointerEvents='none';
+    await glide(el,holes[k].x,holes[k].y,300); sfx('pop'); $('hole_'+k).style.display='none';
+    const g=el.firstElementChild; g.classList.remove('pop'); void g.getBBox(); g.classList.add('pop');
+    svg.insertAdjacentHTML('beforeend',`<g class="pop" pointer-events="none">${star(holes[k].x,250,40)}</g>`);
+    await say('p_'+k); if(!live(t))return;
+    if(++placed===n) return winStage(ctx,t);
+    busy=false;
+  }
+  svg.querySelectorAll('.shape').forEach(el=>{
+    const k=el.dataset.k; let drag=null;
+    el.addEventListener('pointerdown',e=>{ if(busy||el.dataset.done) return; e.preventDefault(); try{el.setPointerCapture(e.pointerId);}catch(_){}
+      const p=svgPoint(e), q=pos(el); drag={dx:q.x-p.x,dy:q.y-p.y,sx:p.x,sy:p.y,moved:0}; sfx('pop'); });
+    el.addEventListener('pointermove',e=>{ if(!drag) return; const p=svgPoint(e); drag.moved=Math.max(drag.moved,Math.hypot(p.x-drag.sx,p.y-drag.sy)); moveTo(el,p.x+drag.dx,p.y+drag.dy); });
+    const end=async()=>{ if(!drag) return; const d=drag; drag=null;
+      if(d.moved<30) return ok(el,k);
+      const p=pos(el);
+      const near=kinds.filter(h=>!svg.querySelector('#sh_'+h).dataset.done||h===k).map(h=>({h,dist:Math.hypot(p.x-holes[h].x,p.y-holes[h].y)})).sort((a,b)=>a.dist-b.dist)[0];
+      if(near.dist<200 && near.h===k) return ok(el,k);
+      if(near.dist<200){ busy=true; sfx('boing'); await glide(el,homes[k].x,homes[k].y); await say('p_try'); if(!live(t))return; $('hole_'+k).firstElementChild.classList.add('pulse'); busy=false; return; }
+      glide(el,homes[k].x,homes[k].y);
+    };
+    el.addEventListener('pointerup',end); el.addEventListener('pointercancel',end);
+  });
+}
+
+/* ---- ENGINE 5: rub the screen to clean & discover ---- */
+async function rubStage(ctx){
+  const st=ctx.st; const leafCols=['#E76F51','#F4A261','#E9C46A','#C1121F','#D4A373'];
+  const coverCol={dust:['#B8A58C','#A89478','#C9B79C'],mud:[C.mud,C.mud2,'#7A5235'],sand:['#E8C27A','#D9B263','#F2D49B'],cloud:['#ffffff','#F1F5FA','#E3EAF2']}[st.cover];
+  let scene='', area;
+  if(st.reveal==='butterfly'){
+    scene=`${tree(240,700,1)}${tree(1380,690,.9)}
+      <g id="bf" opacity="0" style="transition:opacity 1s"><g class="bob">${butterfly(800,330,1.3)}</g></g>
+      ${flower(500,760,C.red)}${flower(700,800,C.yellow)}${flower(950,770,C.purple)}${flower(1150,810,C.blue)}${flower(360,840,C.orange)}${flower(1300,850,C.red)}
+      <rect x="620" y="620" width="300" height="24" rx="12" fill="#8D5524"/><rect x="640" y="644" width="20" height="60" fill="#8D5524"/><rect x="880" y="644" width="20" height="60" fill="#8D5524"/>`;
+    area=[60,420,1540,860];
+  } else {
+    const obj={bus:bus(800,800,1.25),car:car(800,800,'red',false,2.2),train:train(780,800,1),plane:plane(800,520,1.25)}[st.reveal];
+    scene=`${st.reveal==='plane'?'':road(800)}<g id="bf">${obj}</g>`;
+    area= st.reveal==='plane'?[300,280,1320,720]:[220,340,1400,820];
+  }
+  const total=st.cover==='leaves'?80:95; let covers='';
+  for(let i=0;i<total;i++){ const x=area[0]+Math.random()*(area[2]-area[0]), y=area[1]+Math.random()*(area[3]-area[1]);
+    covers+= st.cover==='leaves' ? leaf(x,y,Math.random()*360,leafCols[i%5])
+      : `<g class="leaf" data-x="${x}" data-y="${y}" transform="translate(${x} ${y}) rotate(0)"><circle r="${55+Math.random()*30}" fill="${coverCol[i%3]}"/></g>`; }
+  const t=setScene(`${backdrop()}${scene}<g id="leaves">${covers}</g>
+    <g id="sw" style="transition:transform .25s ease-out"><g class="honk">${sweeper(0,890,.5)}</g></g>
+    <rect id="rub" x="0" y="250" width="1600" height="650" fill="transparent"/>`);
+  wireFun();
+  const sw=$('sw'); sw.style.transform='translateX(150px)';
+  let swept=0, half=false, finished=false;
+  say(st.intro);
+  const brushes=[...svg.querySelectorAll('#sw .brush')]; let lastSfx=0;
+  const sweepAt=async p=>{
+    if(finished) return;
+    sw.style.transform=`translateX(${Math.max(120,Math.min(1480,p.x))}px)`; brushes.forEach(b=>b.classList.add('spin'));
+    svg.querySelectorAll('#leaves .leaf').forEach(l=>{
+      if(l.dataset.gone) return;
+      if(Math.hypot(+l.dataset.x-p.x,+l.dataset.y-p.y)<140){ l.dataset.gone=1; swept++;
+        l.style.transition='transform .6s ease-out, opacity .6s'; l.style.opacity=0;
+        l.setAttribute('transform',l.getAttribute('transform').replace(/translate\(([-\d.]+) ([-\d.]+)\)/,(m,a,b)=>`translate(${+a+(Math.random()*160-80)} ${+b-120})`));
+        setTimeout(()=>l.remove(),650); } });
+    const now=performance.now(); if(now-lastSfx>220){ sfx('swish'); lastSfx=now; }
+    if(!half && swept>total*.45){ half=true; if(voiceIdle()) say('w_half'); }
+    if(swept>total*.85){ finished=true;
+      svg.querySelectorAll('#leaves .leaf').forEach(l=>{l.style.transition='opacity .5s';l.style.opacity=0;});
+      brushes.forEach(b=>b.classList.remove('spin'));
+      $('bf').setAttribute('opacity',1); const b=$('bf'); b.classList.add('pop'); sfx('ding');
+      await sleep(400); if(!live(t))return;
+      await say(st.done); if(!live(t))return;
+      winStage(ctx,t); }
+  };
+  let down=false; const rub=$('rub');
+  rub.addEventListener('pointerdown',e=>{down=true; try{rub.setPointerCapture(e.pointerId);}catch(_){} sweepAt(svgPoint(e));});
+  rub.addEventListener('pointermove',e=>{ if(down) sweepAt(svgPoint(e)); });
+  const up=()=>{down=false; brushes.forEach(b=>b.classList.remove('spin'));};
+  rub.addEventListener('pointerup',up); rub.addEventListener('pointercancel',up);
+}
+
+/* ---- Grumble story (after a star in every world) and champion ending (all 30) ---- */
+async function finaleScene(champion){
+  const flowers=[200,420,640,960,1180,1400].map((x,i)=>`<g id="f${i}" transform="translate(${x} 700) scale(.2)">
+     <rect x="-6" y="-120" width="12" height="120" fill="${C.hill2}"/>
+     ${[0,72,144,216,288].map(a=>`<circle cx="${Math.cos(a*Math.PI/180)*30}" cy="${-140+Math.sin(a*Math.PI/180)*30}" r="24" fill="${[C.red,C.yellow,C.purple,C.orange,C.blue,C.red][i]}"/>`).join('')}
+     <circle cx="0" cy="-140" r="18" fill="${C.yellow}"/></g>`).join('');
+  const t=setScene(`${backdrop()}
+    <g id="rainbow" opacity="0" style="transition:opacity 1.5s">
+      ${[C.red,C.orange,C.yellow,C.green,C.blue,C.purple].map((c,i)=>`<path d="M${200+i*28} 640 A${600-i*28} ${520-i*28} 0 0 1 ${1400-i*28} 640" stroke="${c}" stroke-width="30" fill="none"/>`).join('')}
+    </g>
+    <rect x="0" y="700" width="1600" height="200" fill="${C.hill2}"/>${flowers}
+    <g class="bob">${tara(300,860,1)}</g>
+    <g id="gr">${grumble(1100,280,1)}</g><g id="rain"></g>`);
+  if(champion){ await say('fin_m'); if(!live(t))return; } else { await say('all_clean'); if(!live(t))return; }
+  await say('g_sorry'); if(!live(t))return;
+  await say('okay'); if(!live(t))return;
+  $('gr').innerHTML=`<g class="pop">${grumble(1100,280,1,true)}</g>`; sfx('ding');
+  await say('g_yes'); if(!live(t))return;
+  $('rain').innerHTML=Array.from({length:24},(_,i)=>`<rect class="drop" style="animation-delay:${(i%8)*.12}s" x="${980+(i%12)*22}" y="${350+(i%2)*30}" width="9" height="32" rx="4" fill="${C.blue}"/>`).join('');
+  [0,1,2,3,4,5].forEach(i=>setTimeout(()=>{const f=$('f'+i); if(f) f.setAttribute('transform',f.getAttribute('transform').replace('scale(.2)','scale(1.1)'));},300+i*250));
+  await say('g_rain'); if(!live(t))return;
+  $('rainbow').setAttribute('opacity',1); celebrate();
+  await say('hooray'); if(!live(t))return;
+  await say(champion?'win3':'win5'); if(!live(t))return;
+  svg.insertAdjacentHTML('beforeend',`<g id="again" class="tap"><g class="pulse"><circle cx="800" cy="470" r="130" fill="${C.green}"/><circle cx="800" cy="470" r="130" fill="none" stroke="#fff" stroke-width="12"/>
+     <path d="M752 450 L870 470 L752 540 Z" fill="#fff"/></g></g>`);
+  $('again').onclick=()=>{sfx('pop'); menuScene();};
+  await say('find_red');
+}
+
+/* ============ PLAY LOCK (keeps little fingers inside the game) ============ */
+let locked=false, wakeLock=null;
+const xbtn=document.getElementById('xbtn'), resumeEl=document.getElementById('resume'), xhint=document.getElementById('xhint');
+async function goFull(){
+  const el=document.documentElement;
+  try{ if(!(document.fullscreenElement||document.webkitFullscreenElement)){
+    if(el.requestFullscreen) await el.requestFullscreen({navigationUI:'hide'}); else if(el.webkitRequestFullscreen) el.webkitRequestFullscreen(); } }catch(e){}
+  try{ if(screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape'); }catch(e){}
+}
+async function grabWake(){ try{ if('wakeLock' in navigator){ wakeLock=await navigator.wakeLock.request('screen'); } }catch(e){} }
+function enterLock(){ locked=true; xbtn.style.display='flex'; goFull(); grabWake(); }
+function exitLock(){
+  locked=false; xbtn.style.display='none'; resumeEl.style.display='none';
+  try{ if(wakeLock) wakeLock.release(); }catch(e){} wakeLock=null;
+  try{ if(document.exitFullscreen && document.fullscreenElement) document.exitFullscreen(); else if(document.webkitExitFullscreen && document.webkitFullscreenElement) document.webkitExitFullscreen(); }catch(e){}
+  try{ VOICE.pause(); speechSynthesis.cancel(); }catch(e){}
+  titleScene();
+}
+['fullscreenchange','webkitfullscreenchange'].forEach(ev=>document.addEventListener(ev,()=>{
+  const fs=document.fullscreenElement||document.webkitFullscreenElement;
+  if(locked && !fs && (document.fullscreenEnabled||document.webkitFullscreenEnabled)) resumeEl.style.display='flex';
+}));
+document.addEventListener('visibilitychange',()=>{ if(locked && document.visibilityState==='visible'){ grabWake(); } });
+resumeEl.addEventListener('click',()=>{ resumeEl.style.display='none'; goFull(); grabWake(); });
+// block page scrolling, pull-to-refresh, pinch zoom, long-press menus and text selection
+['touchmove','gesturestart','gesturechange'].forEach(ev=>document.addEventListener(ev,e=>{ if(e.cancelable) e.preventDefault(); },{passive:false}));
+document.addEventListener('contextmenu',e=>e.preventDefault());
+document.addEventListener('dblclick',e=>e.preventDefault());
+window.addEventListener('beforeunload',e=>{ if(locked){ e.preventDefault(); e.returnValue=''; } });
+// X button: hold 2 seconds to exit (a quick tap only shows the hint)
+let xT=null;
+xbtn.addEventListener('pointerdown',e=>{ e.preventDefault(); xbtn.classList.add('holding'); xhint.classList.add('on');
+  xT=setTimeout(()=>{ xbtn.classList.remove('holding'); xhint.classList.remove('on'); exitLock(); },2000); });
+const xEnd=()=>{ xbtn.classList.remove('holding'); clearTimeout(xT); setTimeout(()=>xhint.classList.remove('on'),1500); };
+['pointerup','pointerleave','pointercancel'].forEach(ev=>xbtn.addEventListener(ev,xEnd));
+
+/* Home button: hold 1.5 s (parent gate) */
+let holdT=null;
+const startHold=e=>{e.preventDefault(); homeBtn.classList.add('holding'); holdT=setTimeout(()=>{homeBtn.classList.remove('holding'); if(currentAudio)currentAudio.pause(); try{speechSynthesis.cancel();}catch(e){} menuScene();},1500);};
+const endHold=()=>{homeBtn.classList.remove('holding'); clearTimeout(holdT);};
+homeBtn.addEventListener('pointerdown',startHold); ['pointerup','pointerleave','pointercancel'].forEach(ev=>homeBtn.addEventListener(ev,endHold));
+
+titleScene();
+</script>
+</body>
+</html>
