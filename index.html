@@ -50,7 +50,7 @@
 <body>
 <div id="stage"><svg id="scene" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMax meet"></svg></div>
 <div id="sub"></div>
-<button id="home" aria-label="Home (hold)"><span class="ring"></span>🏠</button>
+<button id="home" aria-label="Home"><span class="ring"></span>🏠</button>
 <button id="ccbtn" aria-label="Subtitles">CC</button>
 <button id="xbtn" aria-label="Exit (grown-ups: hold)"><span class="ring"></span>✕</button>
 <div id="xhint">Grown-ups: hold ✕ for 2 seconds to exit</div>
@@ -96,7 +96,7 @@ const LINES = {
   sun:["Tara","Hello, sunshine!"],
   hello_m:["Tara","Hello, Manik! I am Tara. Welcome to Tinkertown!"],
   pick_m:["Tara","Manik, tap a machine to play!"],
-  stage_pick:["Tara","Tap a star to play!"],
+  stage_pick:["Tara","Manik, tap a number to play!"],
   win1:["Tara","Yay, Manik! You did it!"],
   win2:["Tara","Well done, Manik!"],
   win3:["Tara","Super, Manik! You are a star!"],
@@ -994,7 +994,8 @@ async function findStage(ctx){
       el.onclick=async()=>{
         const k=el.dataset.k; if(busy||el.dataset.done) return;
         if(k!==targetKey){ busy=true; const b=el.querySelector('.cbody'); b.classList.remove('wiggle'); void b.getBBox(); b.classList.add('wiggle'); sfx('boing');
-          await say('look_again'); if(!live(t))return; $('c_'+targetKey).querySelector('.cbody').classList.add('pulse'); busy=false; return; }
+          await say('look_again'); if(!live(t))return; $('c_'+targetKey).querySelector('.cbody').classList.add('pulse');
+          await say(ITEMS[targetKey].prompt); if(!live(t))return; busy=false; return; }
         busy=true; el.dataset.done=1; el.querySelector('.cbody').classList.remove('pulse');
         await act(el,k); if(!live(t))return;
         await say(ITEMS[k].yes); if(!live(t))return;
@@ -1093,7 +1094,7 @@ async function holesStage(ctx){
       const p=pos(el);
       const near=kinds.filter(h=>!svg.querySelector('#sh_'+h).dataset.done||h===k).map(h=>({h,dist:Math.hypot(p.x-holes[h].x,p.y-holes[h].y)})).sort((a,b)=>a.dist-b.dist)[0];
       if(near.dist<200 && near.h===k) return ok(el,k);
-      if(near.dist<200){ busy=true; sfx('boing'); await glide(el,homes[k].x,homes[k].y); await say('p_try'); if(!live(t))return; $('hole_'+k).firstElementChild.classList.add('pulse'); busy=false; return; }
+      if(near.dist<200){ busy=true; sfx('boing'); await glide(el,homes[k].x,homes[k].y); await say('p_try'); if(!live(t))return; $('hole_'+k).firstElementChild.classList.add('pulse'); await say('p_'+k); if(!live(t))return; busy=false; return; }
       glide(el,homes[k].x,homes[k].y);
     };
     el.addEventListener('pointerup',end); el.addEventListener('pointercancel',end);
@@ -1221,10 +1222,7 @@ const xEnd=()=>{ xbtn.classList.remove('holding'); clearTimeout(xT); setTimeout(
 ['pointerup','pointerleave','pointercancel'].forEach(ev=>xbtn.addEventListener(ev,xEnd));
 
 /* Home button: hold 1.5 s (parent gate) */
-let holdT=null;
-const startHold=e=>{e.preventDefault(); homeBtn.classList.add('holding'); holdT=setTimeout(()=>{homeBtn.classList.remove('holding'); if(currentAudio)currentAudio.pause(); try{speechSynthesis.cancel();}catch(e){} menuScene();},1500);};
-const endHold=()=>{homeBtn.classList.remove('holding'); clearTimeout(holdT);};
-homeBtn.addEventListener('pointerdown',startHold); ['pointerup','pointerleave','pointercancel'].forEach(ev=>homeBtn.addEventListener(ev,endHold));
+homeBtn.addEventListener('click',()=>{ sfx('pop'); try{VOICE.pause();}catch(e){} try{speechSynthesis.cancel();}catch(e){} menuScene(); });
 
 titleScene();
 </script>
