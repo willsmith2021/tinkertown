@@ -178,7 +178,7 @@ const LINES = {
 let ccOn = true;
 const VOICE = new Audio(); VOICE.preload='auto';
 /* warm the cache so lines start instantly */
-const _pre = Object.keys(LINES).map(id=>{const x=new Audio(); x.preload='auto'; x.src=`audio/${id}.mp3`; return x;});
+const _pre = [];
 const subEl = document.getElementById('sub');
 let currentAudio = null;
 function showSub(who,text){
@@ -208,17 +208,17 @@ function bestVoice(){
   return _bv;
 }
 try{speechSynthesis.onvoiceschanged=()=>{_bv=null;bestVoice();};}catch(e){}
+let AUDIO_BASE=null;  // 'audio/' or '' (site root) - worked out on first play
 function say(id){
   const [who,text] = LINES[id];
   showSub(who,text);
   if(currentAudio){try{currentAudio.pause();}catch(e){}}
   return new Promise(resolve=>{
     let done=false; const finish=()=>{if(done)return;done=true;resolve();};
-    const a = VOICE;
-    currentAudio=a;
-    a.onended=()=>{finish();};
-    a.src = `audio/${id}.mp3`;
-    a.onerror=()=>{ // fallback: device voice, Indian English
+    const a = VOICE; currentAudio=a;
+    const bases = AUDIO_BASE===null ? ['audio/',''] : [AUDIO_BASE, AUDIO_BASE==='audio/'?'':'audio/'];
+    let attempt=0, tts=false;
+    const speakTTS=()=>{ if(tts||done) return; tts=true;
       try{
         const u=new SpeechSynthesisUtterance(text); u.lang='en-IN'; u.rate=0.92; u.pitch=who==='Grumble'?1.35:1.08;
         const v=bestVoice(); if(v){u.voice=v;u.lang=v.lang;}
@@ -226,7 +226,16 @@ function say(id){
         setTimeout(finish, 900+text.length*75);
       }catch(e){setTimeout(finish,900+text.length*60);}
     };
-    a.play().catch(()=>a.onerror());
+    const tryNext=()=>{
+      if(attempt>=bases.length) return speakTTS();
+      const b=bases[attempt++]; const myTry=attempt;
+      a.onended=()=>{ if(AUDIO_BASE===null) AUDIO_BASE=b; finish(); };
+      a.onplaying=()=>{ if(AUDIO_BASE===null) AUDIO_BASE=b; };
+      a.onerror=()=>{ if(myTry===attempt) tryNext(); };
+      a.src=`${b}${id}.mp3`;
+      a.play().catch(e=>{ if(e && e.name==='NotAllowedError') speakTTS(); });
+    };
+    tryNext();
     setTimeout(finish, 12000);
   });
 }
