@@ -8,7 +8,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest">
 <style>
   html,body{margin:0;height:100%;background:#BFE9FF;overflow:hidden;touch-action:none;overscroll-behavior:none;position:fixed;inset:0;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;font-family:"Baloo 2","Nunito","Trebuchet MS",system-ui,sans-serif}
-  svg#scene{width:100vw;height:100vh;height:100dvh;display:block}
+  svg#scene{position:absolute;inset:0;width:100%;height:100%;display:block}
   #sub.on{opacity:1}
   #sub b{color:#7B3FE4;margin-right:.35em}
   #sub b.g{color:#5A7D9A}
@@ -42,14 +42,15 @@
   #resume button{font:900 clamp(28px,5vw,60px) inherit;font-family:inherit;color:#fff;background:#3CCB6B;border:none;border-radius:999px;padding:4vh 7vw;box-shadow:0 10px 0 #00000033;cursor:pointer}
 
   :root{--sat:env(safe-area-inset-top,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);--sab:env(safe-area-inset-bottom,0px);
-        --btn:clamp(52px,min(11vh,11vw),96px);--gap:clamp(8px,1.6vmin,18px)}
+        --btn:clamp(52px,min(11vh,11vw),96px);--gap:clamp(8px,1.6vmin,18px);
+        --sbtn:calc(var(--btn)*.82);--slot:calc(var(--btn) + var(--gap)*2.2);--stop:calc(var(--sat) + var(--gap) + (var(--btn) - var(--sbtn))/2)}
   #stage{position:fixed;inset:0;display:block}
   #sub{position:fixed;left:50%;top:calc(var(--sat) + var(--gap));transform:translateX(-50%);max-width:calc(100vw - 2*(var(--btn)*2 + var(--gap)*3) - var(--sal) - var(--sar));min-width:min(40vw,320px);box-sizing:border-box;background:#ffffffee;color:#2B2D42;border-radius:clamp(14px,2.4vmin,28px);padding:clamp(6px,1.2vmin,14px) clamp(12px,2.4vmin,28px);font-size:clamp(15px,min(3.4vw,5.2vh),42px);font-weight:800;line-height:1.2;text-align:center;box-shadow:0 6px 0 #00000018;opacity:0;transition:opacity .25s;pointer-events:none;z-index:10}
   #home{position:fixed;top:calc(var(--sat) + var(--gap));left:calc(var(--sal) + var(--gap));width:var(--btn);height:var(--btn);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;display:none;align-items:center;justify-content:center;font-size:calc(var(--btn)*.45);cursor:pointer;z-index:15;padding:0}
-  #ccbtn{position:fixed;top:calc(var(--sat) + var(--gap));left:calc(var(--sal) + var(--btn) + var(--gap)*2);width:calc(var(--btn)*.82);height:calc(var(--btn)*.82);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;font-weight:900;font-size:calc(var(--btn)*.26);color:#2B2D42;cursor:pointer;z-index:15;padding:0}
+  #ccbtn{position:fixed;top:var(--stop);left:calc(var(--sal) + var(--gap) + var(--slot));width:var(--sbtn);height:var(--sbtn);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;font-weight:900;font-size:calc(var(--btn)*.26);color:#2B2D42;cursor:pointer;z-index:15;padding:0}
   #xbtn{position:fixed;top:calc(var(--sat) + var(--gap));right:calc(var(--sar) + var(--gap));width:var(--btn);height:var(--btn);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;display:none;align-items:center;justify-content:center;font-size:calc(var(--btn)*.48);font-weight:900;color:#E63946;cursor:pointer;z-index:20;padding:0}
   #xhint{position:fixed;top:calc(var(--sat) + var(--btn) + var(--gap)*2);right:calc(var(--sar) + var(--gap));background:#2B2D42;color:#fff;font-weight:800;font-size:clamp(13px,2vmin,20px);padding:10px 16px;border-radius:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:20}
-  #gear{position:fixed;top:calc(var(--sat) + var(--gap));left:calc(var(--sal) + var(--btn) + var(--gap)*2 + var(--btn)*.82 + var(--gap));width:calc(var(--btn)*.82);height:calc(var(--btn)*.82);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;font-size:calc(var(--btn)*.36);cursor:pointer;z-index:15;display:none;padding:0}
+  #gear{position:fixed;top:var(--stop);left:calc(var(--sal) + var(--gap) + var(--slot) + var(--sbtn) + var(--gap)*2.2);width:var(--sbtn);height:var(--sbtn);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;font-size:calc(var(--btn)*.36);cursor:pointer;z-index:15;display:none;padding:0}
   #turn{position:fixed;left:50%;bottom:calc(var(--sab) + 2vh);transform:translateX(-50%);background:#2B2D42e6;color:#fff;font-weight:800;font-size:clamp(14px,3.6vw,22px);padding:10px 18px;border-radius:999px;pointer-events:none;opacity:0;transition:opacity .4s;z-index:12;white-space:nowrap}
   #turn.on{opacity:1}
   #rotate{position:fixed;inset:0;background:#BFE9FF;display:none;flex-direction:column;align-items:center;justify-content:center;gap:4vh;z-index:35}
@@ -78,7 +79,8 @@
   #setup .card,#credits .card{position:relative}
   #setup .xclose,#credits .xclose{position:absolute;top:clamp(10px,2vmin,18px);right:clamp(10px,2vmin,18px);width:clamp(44px,7vmin,56px);height:clamp(44px,7vmin,56px);margin:0;padding:0;border:none;border-radius:50%;background:#F1EEF8;color:#E5484D;font-family:inherit;font-weight:900;font-size:clamp(20px,3.4vmin,28px);line-height:1;cursor:pointer;box-shadow:0 4px 0 #00000014}
   #setup .xclose:active,#credits .xclose:active{transform:translateY(3px);box-shadow:0 1px 0 #00000014}
-  #creditsBtn{position:fixed;right:calc(var(--sar) + var(--gap));bottom:calc(var(--sab) + var(--gap));background:#fff;border:none;border-radius:999px;box-shadow:0 5px 0 #00000022;font-family:inherit;font-weight:800;font-size:calc(var(--btn)*.24);padding:calc(var(--btn)*.14) calc(var(--btn)*.3);color:#2B2D42;cursor:pointer;z-index:15;display:none}
+  #creditsBtn{position:fixed;top:var(--stop);left:calc(var(--sal) + var(--gap) + var(--slot) + (var(--sbtn) + var(--gap)*2.2)*2);width:var(--sbtn);height:var(--sbtn);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;padding:0;cursor:pointer;z-index:15;display:none;align-items:center;justify-content:center}
+  #creditsBtn svg{width:58%;height:58%;display:block;margin:auto}
   #credits{position:fixed;inset:0;background:#BFE9FFf2;display:none;align-items:center;justify-content:center;z-index:40;padding:calc(var(--sat) + 12px) calc(var(--sar) + 12px) calc(var(--sab) + 12px) calc(var(--sal) + 12px);box-sizing:border-box;overflow:auto;touch-action:auto}
   #credits .card{background:#fff;border-radius:28px;box-shadow:0 10px 0 #00000018;padding:clamp(18px,3.5vmin,36px);width:min(560px,100%);box-sizing:border-box;color:#2B2D42;margin:auto;text-align:center}
   #credits h2{margin:0 0 14px;font-size:clamp(22px,4vmin,34px);color:#7B3FE4}
@@ -102,7 +104,7 @@
 <div id="xhint">Grown-ups: hold ✕ for 2 seconds to exit</div>
 <div id="resume"><button>▶ Keep playing</button></div>
 <button id="gear" aria-label="Grown-up settings">⚙️</button>
-<button id="creditsBtn" aria-label="Credits">ⓘ Credits</button>
+<button id="creditsBtn" aria-label="Credits"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="#7B3FE4" stroke-width="2.6"/><circle cx="12" cy="7.2" r="1.7" fill="#7B3FE4"/><rect x="10.6" y="10.2" width="2.8" height="8" rx="1.4" fill="#7B3FE4"/></svg></button>
 <div id="credits"><div class="card">
   <button class="xclose" id="creditsx" aria-label="Close">✕</button>
   <h2>🛠️ Credits</h2>
@@ -944,10 +946,20 @@ async function fetchNameClips(name, say, onStatus){
   }
   return out;
 }
+// Plays a name clip through the SAME player as Tara's other lines. iPhone/iPad only allow sound from a
+// player that a tap has already unlocked - a brand-new player gets refused, which made the game skip ahead.
+// Resolves true if the clip played, false if it couldn't (the caller then uses Tara's normal line).
 function playData(src, subtitle){
   return new Promise(res=>{
-    let done=false; const fin=()=>{ if(!done){done=true;res();} };
-    try{ if(subtitle) showSub('Tara',esc(subtitle)); const a=new Audio(src); a.onended=fin; a.onerror=fin; a.play().catch(fin); setTimeout(fin,6000); }catch(e){ fin(); }
+    let done=false; const end=ok=>{ if(!done){ done=true; res(ok); } };
+    try{
+      if(subtitle) showSub('Tara',esc(subtitle));
+      if(currentAudio){ try{currentAudio.pause();}catch(e){} }
+      const a=VOICE; currentAudio=a;
+      a.onplaying=null; a.onended=()=>end(true); a.onerror=()=>end(false);
+      a.src=src; a.play().catch(()=>end(false));
+      setTimeout(()=>end(true),7000);
+    }catch(e){ end(false); }
   });
 }
 
@@ -965,7 +977,7 @@ function titleScene(){
     ${bulldozer(1280,800,.8)}
     <g id="play" class="tap"><g class="pulse"><circle cx="800" cy="530" r="160" fill="${C.green}"/><circle cx="800" cy="530" r="160" fill="none" stroke="#fff" stroke-width="14"/>
       <path d="M752 450 L885 530 L752 610 Z" fill="#fff" stroke="#fff" stroke-width="18" stroke-linejoin="round"/></g></g>`);
-  gearBtn.style.display='block'; creditsBtn.style.display='block';
+  gearBtn.style.display='block'; creditsBtn.style.display='flex';
   $('play').onclick = ()=>{ gearBtn.style.display='none'; creditsBtn.style.display='none'; sfx('pop'); enterLock(); try{speechSynthesis.getVoices();}catch(e){} introScene(); };
 }
 async function introScene(){
@@ -975,8 +987,8 @@ async function introScene(){
     ${[0,1,2,3,4,5].map(i=>`<rect class="drop" style="animation-delay:${i*.15}s" x="${1060+i*40}" y="310" width="8" height="30" rx="4" fill="#6B7A90"/>`).join('')}
     <g class="bob">${tara(420,760,1.15)}</g>`);
   homeBtn.style.display='flex';
-  if(hasClips()){ await playData(PROFILE.clips.hello, CLIP_TEXT.hello(KID)); if(!live(t))return; }
-  else { await say('hello_m'); if(!live(t))return; }
+  if(!(hasClips() && await playData(PROFILE.clips.hello, CLIP_TEXT.hello(KID)))){ if(!live(t))return; await say('hello_m'); }
+  if(!live(t))return;
   await say('ohno'); if(!live(t))return;
   menuScene();
 }
@@ -1030,8 +1042,9 @@ async function winStage(ctx,t){
     ${star(395,445,62)}${star(1205,445,62)}
     <text x="800" y="480" text-anchor="middle" font-size="${KID.length>6?Math.max(52,96-(KID.length-6)*7):96}" font-weight="900" fill="${C.purple}">Yay${KID?' '+esc(KID):''}!</text></g>`);
   SAVE.stars[starKey(ctx.wid,ctx.i)]=true; persist();
-  if(hasClips()){ const k=pick(['cheer1','cheer2','cheer3']); await playData(PROFILE.clips[k], CLIP_TEXT[k](KID)); if(!live(t)) return; }
-  else { await say(pick(['win1','win2','win3','win4','win5'])); if(!live(t)) return; }
+  const k=pick(['cheer1','cheer2','cheer3']);
+  if(!(hasClips() && await playData(PROFILE.clips[k], CLIP_TEXT[k](KID)))){ if(!live(t)) return; await say(pick(['win1','win2','win3','win4','win5'])); }
+  if(!live(t)) return;
   await sleep(500); if(!live(t)) return;
   if(totalStars()>=30 || (!SAVE.story && WORLDS.every(w=>worldStars(w.id)>0))) return menuScene();
   stageMap(ctx.wid);
@@ -1354,7 +1367,10 @@ homeBtn.addEventListener('click',()=>{ sfx('pop'); try{VOICE.pause();}catch(e){}
 // Everything is drawn in a 1600x900 "safe area". The visible area grows sideways on wide
 // phones and upwards on taller tablets, so nothing is cut off and there are no empty bars.
 function fitView(){
-  const vv=window.visualViewport, W=(vv&&vv.width)||innerWidth, H=(vv&&vv.height)||innerHeight;
+  // measure the game area itself (not Safari's "visible area"), so the picture always fills it edge to edge
+  const r=svg.getBoundingClientRect(), vv=window.visualViewport;
+  const W=r.width||(vv&&vv.width)||innerWidth, H=r.height||(vv&&vv.height)||innerHeight;
+  if(!W||!H) return;
   const a=W/H; let x=0,y=0,w=1600,h=900;
   if(a>=16/9){ w=900*a; x=-(w-1600)/2; } else { h=1600/a; y=900-h; }
   svg.setAttribute('viewBox',`${x.toFixed(1)} ${y.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);
@@ -1362,6 +1378,7 @@ function fitView(){
 }
 ['resize','orientationchange'].forEach(ev=>addEventListener(ev,()=>{ fitView(); setTimeout(fitView,300); }));
 if(window.visualViewport) visualViewport.addEventListener('resize',fitView);
+if(window.ResizeObserver) new ResizeObserver(()=>fitView()).observe(svg);
 fitView();
 
 /* ============ GROWN-UP SETUP ============ */
