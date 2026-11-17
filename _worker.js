@@ -298,8 +298,25 @@ async function adminRouter(request, env, url) {
       }
     }
     await Promise.all([...old, ...made].map(k => env.TT.delete(k)));
-    const names = (await getNames(env)).filter(x => x.name.toLowerCase() !== name.toLowerCase());
+    const all = await getNames(env);
+    const madeToday = all.some(x => x.name.toLowerCase() === lower && String(x.at || "").startsWith(today()));
+    const names = all.filter(x => x.name.toLowerCase() !== lower);
     await env.TT.put("names", JSON.stringify(names));
+    if (madeToday) {
+      const ck = `count:${today()}`, used = parseInt((await env.TT.get(ck)) || "0", 10);
+      if (used > 0) await env.TT.put(ck, String(used - 1), { expirationTtl: 60 * 60 * 48 });
+    }
+    return json({ ok: true, removed: all.length - names.length });
+  }
+  if (route === "reset-limits" && request.method === "POST") {
+    // clears today's counters (all devices) - handy while testing; stored names and voices are kept
+    const keys = [`count:${today()}`];
+    let cursor;
+    do {
+      const ls = await env.TT.list({ prefix: `dev:${today()}:`, cursor });
+      ls.keys.forEach(k => keys.push(k.name)); cursor = ls.list_complete ? null : ls.cursor;
+    } while (cursor);
+    await Promise.all(keys.map(k => env.TT.delete(k)));
     return json({ ok: true });
   }
   return json({ error: "Not found" }, 404);
@@ -338,6 +355,7 @@ const ADMIN_HTML = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
   <div class="row"><label for="limit" style="font-weight:700">New names allowed per day (all devices)</label><input id="limit" type="number" min="0" max="200" style="width:110px"></div>
   <div class="row"><label for="dlimit" style="font-weight:700">New names per day from one device</label><input id="dlimit" type="number" min="0" max="50" style="width:110px"><button class="ghost" id="savecfg">Save</button></div>
   <p class="note" id="usage"></p>
+  <div class="row"><button class="ghost" id="resetlim">Reset today's limits</button><span class="note">Use this while testing - lets every device add new names again today.</span></div>
  </div>
  <div class="card"><h2>Test the voice</h2>
   <p class="note">Hear Tara say "Yay, ___! You did it!" before a child does. Uses a few credits.</p>
@@ -351,6 +369,18 @@ const ADMIN_HTML = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
 <script nonce="%NONCE%">
 const $=id=>document.getElementById(id);
 const api=(path,body)=>fetch('/admin/api/'+path,body===undefined?{headers:{'X-TT-Admin':'1'},credentials:'same-origin'}:{method:'POST',credentials:'same-origin',headers:{'Content-Type':'application/json','X-TT-Admin':'1'},body:JSON.stringify(body)});
+// tap once -> button asks "Sure?", tap again within 4s -> do it (no pop-up dialogs, which browsers can block)
+function confirmTap(btn, run){
+  if(btn.dataset.armed){ delete btn.dataset.armed; btn.textContent=btn.dataset.label; run(); return; }
+  btn.dataset.label=btn.textContent; btn.dataset.armed='1'; btn.textContent='Tap again to confirm';
+  setTimeout(()=>{ if(btn.dataset.armed){ delete btn.dataset.armed; btn.textContent=btn.dataset.label; } },4000);
+}
+async function post(path, body, okMsg){
+  try{ const r=await api(path, body); const j=await r.json().catch(()=>({}));
+    if(!r.ok){ toast(j.error || ('Failed ('+r.status+') - try reloading the page')); return null; }
+    toast(okMsg); load(); return j;
+  }catch(e){ toast('Network error - try again'); return null; }
+}
 function toast(t){const m=$('msg');m.textContent=t;m.style.opacity=1;setTimeout(()=>m.style.opacity=0,2500);}
 const escHtml=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 async function load(){
@@ -363,10 +393,11 @@ async function load(){
   $('usage').textContent='New names made today: '+s.usedToday+' of '+s.cfg.dailyLimit+'.';
   $('names').innerHTML = s.names.length ? s.names.map(n=>'<tr><td>'+escHtml(n.name)+(n.spoken&&n.spoken!==n.name?' <span class="note">('+escHtml(n.spoken)+')</span>':'')+'</td><td>'+new Date(n.at).toLocaleDateString()+'</td><td><button class="danger" data-n="'+escHtml(n.name)+'">Remove</button></td></tr>').join('')
     : '<tr><td colspan="3" class="note">No names yet.</td></tr>';
-  document.querySelectorAll('[data-n]').forEach(b=>b.onclick=async()=>{ if(!confirm('Remove '+b.dataset.n+'?'))return; await api('name-delete',{name:b.dataset.n}); toast('Removed'); load(); });
+  document.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>confirmTap(b,()=>post('name-delete',{name:b.dataset.n},'Removed '+b.dataset.n)));
 }
 $('savekey').onclick=async()=>{const k=$('key').value.trim(); if(!k)return; const r=await api('key',{key:k}); const j=await r.json(); $('key').value=''; toast(j.ok?'Key saved and encrypted':j.error); load();};
-$('delkey').onclick=async()=>{ if(!confirm('Remove the ElevenLabs key? Name voices stop until a new key is saved.'))return; await api('key-delete',{}); toast('Key removed'); load(); };
+$('delkey').onclick=()=>confirmTap($('delkey'),()=>post('key-delete',{},'Key removed - name voices stop until a new key is saved'));
+$('resetlim').onclick=()=>confirmTap($('resetlim'),()=>post('reset-limits',{},"Today's limits reset"));
 $('enabled').onchange=async()=>{await api('settings',{enabled:$('enabled').checked}); toast($('enabled').checked?'Name voices ON':'Name voices OFF');};
 $('savecfg').onclick=async()=>{await api('settings',{dailyLimit:Number($('limit').value),perDeviceLimit:Number($('dlimit').value)}); toast('Saved'); load();};
 $('test').onclick=async()=>{ const n=$('tname').value.trim(); if(!n)return; $('test').disabled=true;
