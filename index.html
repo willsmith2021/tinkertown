@@ -70,6 +70,7 @@
   #setup .go{width:100%;margin-top:18px;background:#3CCB6B;color:#fff;font-size:clamp(20px,3.6vmin,28px);padding:16px}
   #setup .go:disabled{opacity:.45}
   #setup .small{font-size:13px;opacity:.7;margin-top:6px}
+  @media (max-height:520px){ #setup .card p, #setup .small{display:none} #setup h2{margin:0 0 6px} #setup input{padding:10px 14px} #setup label{margin-top:6px!important} }
 </style>
 </head>
 <body>
@@ -89,23 +90,30 @@
   <label for="kidname">Child's name</label>
   <input id="kidname" maxlength="14" autocomplete="off" autocapitalize="words" placeholder="e.g. Aarav" enterkeyhint="done">
   <div class="small" id="recnote">Tara will say this name herself - no recording needed.</div>
+  <label for="kidsay" style="margin-top:14px">Say it like <span style="font-weight:600;opacity:.6">(optional)</span></label>
+  <input id="kidsay" maxlength="30" autocomplete="off" placeholder="e.g. माणिक  or  Maa-nik" enterkeyhint="done">
+  <div class="small">Tara already reads names the Indian way. If it still sounds wrong, type the name in Hindi (माणिक) or how it sounds (Maa-nik).</div>
   <button class="go" id="setupgo" disabled>Let's play! ▶</button>
 </div></div>
 
 <script>
 /* ============ CHILD PROFILE ============ */
 const PROFILE_KEY='tinkertown_profile';
-let PROFILE={name:'',voice:'',clips:null,clipsFor:''};
+let PROFILE={name:'',say:'',voice:'',clips:null,clipsFor:''};
 try{ const r=localStorage.getItem(PROFILE_KEY); if(r) PROFILE=Object.assign(PROFILE,JSON.parse(r)); }catch(e){}
 // existing installs made for Manik keep his name and stars
 try{ if(!PROFILE.name && localStorage.getItem('tinkertown_manik_v2')) PROFILE.name='Manik'; }catch(e){}
 function saveProfile(){ try{ localStorage.setItem(PROFILE_KEY,JSON.stringify(PROFILE)); }catch(e){} }
 let KID = PROFILE.name;
 const isManik = () => KID.trim().toLowerCase()==='manik';
+// every child's name (Manik's too) is spoken by the voice helper in Hindi script, so it sounds Indian
+const builtInName = () => false;
+const sayFor = () => PROFILE.say || (isManik() ? 'माणिक' : '');
+const clipId = () => KID + '|' + sayFor() + '|v2';
 const esc = t => String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 /* lines recorded with Manik's name -> name-free versions for every other child */
 const GENERIC = {hello_m:'hello', pick_m:'tapmachine', stage_pick:'stage_pick_g', win1:'win_g1', win2:'e_welldone', win3:'e_super', win4:'e_helper', win5:'win_g5', fin_m:'fin_g'};
-const lineFor = id => (!isManik() && GENERIC[id]) ? GENERIC[id] : id;
+const lineFor = id => (!builtInName() && GENERIC[id]) ? GENERIC[id] : id;
 /* ============ VOICE + SUBTITLES ============ */
 const LINES = {
   hello:["Tara","Hello! I am Tara. Welcome to Tinkertown!"],
@@ -883,8 +891,8 @@ function persist(){ try{ localStorage.setItem(saveKey(),JSON.stringify(SAVE)); }
 
 /* Tara saying this child's name - made once by the site's voice helper, then kept on the device */
 const CLIP_TEXT = { hello:n=>`Hello, ${n}! I am Tara. Welcome to Tinkertown!`, cheer1:n=>`Yay, ${n}! You did it!`, cheer2:n=>`Well done, ${n}!`, cheer3:n=>`Super, ${n}! You are a star!` };
-const hasClips = () => PROFILE.clips && PROFILE.clipsFor===KID && !isManik();
-async function fetchNameClips(name, onStatus){
+const hasClips = () => PROFILE.clips && PROFILE.clipsFor===clipId() && !builtInName();
+async function fetchNameClips(name, say, onStatus){
   if(!/^https?:$/.test(location.protocol)) return null;
   const blobToData = b => new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.onerror=()=>r(null); fr.readAsDataURL(b); });
   const out={};
@@ -892,7 +900,7 @@ async function fetchNameClips(name, onStatus){
     try{
       onStatus && onStatus(k);
       const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),15000);
-      const r=await fetch(`/api/name?n=${encodeURIComponent(name)}&k=${k}`,{signal:ctl.signal}); clearTimeout(tm);
+      const r=await fetch(`/api/name?n=${encodeURIComponent(name)}&k=${k}${say?'&s='+encodeURIComponent(say):''}`,{signal:ctl.signal}); clearTimeout(tm);
       if(!r.ok || !(r.headers.get('Content-Type')||'').includes('audio')) return null;
       out[k]=await blobToData(await r.blob()); if(!out[k]) return null;
     }catch(e){ return null; }
@@ -1322,29 +1330,31 @@ fitView();
 /* ============ GROWN-UP SETUP ============ */
 const gearBtn=document.getElementById('gear'), setupEl=document.getElementById('setup');
 const nameIn=document.getElementById('kidname'), goBtn=document.getElementById('setupgo');
-const recNote=document.getElementById('recnote');
+const recNote=document.getElementById('recnote'), sayIn=document.getElementById('kidsay');
 function refreshSetup(){ goBtn.disabled=!nameIn.value.trim(); }
-function openSetup(){ nameIn.value=KID; refreshSetup(); setupEl.style.display='flex'; hideSub(); }
+function openSetup(){ nameIn.value=KID; sayIn.value=PROFILE.say||''; refreshSetup(); setupEl.style.display='flex'; hideSub(); }
 nameIn.addEventListener('input',refreshSetup);
 nameIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ nameIn.blur(); } });
+sayIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ sayIn.blur(); } });
 setupEl.addEventListener('touchmove',e=>e.stopPropagation(),{passive:true});
 gearBtn.addEventListener('click',openSetup);
 goBtn.addEventListener('click',async()=>{
   const nm=nameIn.value.trim().replace(/\s+/g,' ').slice(0,14); if(!nm) return;
-  PROFILE.name=nm; PROFILE.voice=''; KID=nm;
-  if(!isManik() && !(PROFILE.clips && PROFILE.clipsFor===nm)){
+  const say=sayIn.value.normalize('NFC').trim().replace(/\s+/g,' ').slice(0,30);
+  PROFILE.name=nm; PROFILE.say=say; PROFILE.voice=''; KID=nm;
+  if(!builtInName() && !hasClips()){
     goBtn.disabled=true; const label=goBtn.textContent;
     goBtn.textContent='Teaching Tara to say '+nm+'…';
-    const clips=await fetchNameClips(nm);
+    const clips=await fetchNameClips(nm, sayFor());
     goBtn.textContent=label; goBtn.disabled=false;
-    if(clips){ PROFILE.clips=clips; PROFILE.clipsFor=nm; } else { PROFILE.clips=null; PROFILE.clipsFor=''; }
+    if(clips){ PROFILE.clips=clips; PROFILE.clipsFor=clipId(); } else { PROFILE.clips=null; PROFILE.clipsFor=''; }
   }
   saveProfile(); loadSave();
   setupEl.style.display='none'; titleScene();
 });
 if(!KID) openSetup(); else titleScene();
 // if Tara couldn't learn the name earlier (offline / helper not set up yet), quietly try again
-if(KID && !isManik() && !hasClips()){ fetchNameClips(KID).then(c=>{ if(c && !hasClips()){ PROFILE.clips=c; PROFILE.clipsFor=KID; saveProfile(); } }); }
+if(KID && !builtInName() && !hasClips()){ fetchNameClips(KID, sayFor()).then(c=>{ if(c && !hasClips()){ PROFILE.clips=c; PROFILE.clipsFor=clipId(); saveProfile(); } }); }
 
 </script>
 </body>

@@ -60,6 +60,41 @@ function cleanName(raw) {
   if (!n || n.length > 20 || !/^[\p{L}\p{M}' -]+$/u.test(n)) return null;
   return n.replace(/(^|[\s-])(\p{L})/gu, (m, a, b) => a + b.toUpperCase());
 }
+function cleanSay(raw) {
+  const n = String(raw || "").normalize("NFC").trim().replace(/\s+/g, " ");
+  if (!n) return "";
+  if (n.length > 30 || !/^[\p{L}\p{M}' -]+$/u.test(n)) return null;
+  return n;
+}
+/* Latin spelling of an Indian name -> Hindi script, so the voice says it the Indian way
+   ("Manik" -> "मनिक", "Aarav" -> "आरव", "Riya" -> "रिया"). Names already in another script are kept. */
+const TV = [["aa","ा","आ"],["ai","ै","ऐ"],["au","ौ","औ"],["ee","ी","ई"],["ii","ी","ई"],["oo","ू","ऊ"],["uu","ू","ऊ"],
+  ["a","","अ"],["i","ि","इ"],["u","ु","उ"],["e","े","ए"],["o","ो","ओ"]];
+const TC = [["ksh","क्ष"],["chh","छ"],["ch","च"],["sh","श"],["kh","ख"],["gh","घ"],["th","थ"],["dh","ध"],["ph","फ"],
+  ["bh","भ"],["jh","झ"],["k","क"],["g","ग"],["c","क"],["j","ज"],["t","त"],["d","द"],["n","न"],["p","प"],["b","ब"],
+  ["m","म"],["y","य"],["r","र"],["l","ल"],["v","व"],["w","व"],["s","स"],["h","ह"],["f","फ़"],["z","ज़"],["q","क"],["x","क्स"]];
+function toHindi(name) {
+  if (!/^[A-Za-z' -]+$/.test(name)) return name;
+  return name.split(/([ -])/).map(word => {
+    const w = word.toLowerCase().replace(/'/g, "");
+    if (!/^[a-z]+$/.test(w)) return word;
+    let out = "", prevC = false, i = 0;
+    while (i < w.length) {
+      const v = TV.find(([l]) => w.startsWith(l, i));
+      if (v) {
+        const [l, mark, ind] = v;
+        const last = i + l.length === w.length;
+        out += prevC ? ((l === "a" && last && w.length > 2) ? "ा" : (l === "i" && last) ? "ी" : mark) : ind;
+        prevC = false; i += l.length; continue;
+      }
+      const c = TC.find(([l]) => w.startsWith(l, i));
+      if (w[i] === "y" && prevC && i + 1 === w.length) { out += "ी"; prevC = false; i++; continue; }   // Avy, Mary
+      if (c) { if (prevC) out += "्"; out += c[1]; prevC = true; i += c[0].length; continue; }
+      i++;
+    }
+    return out;
+  }).join("");
+}
 async function getCfg(env) { return { ...DEFAULT_CFG, ...(JSON.parse((await env.TT.get("cfg")) || "{}")) }; }
 async function getNames(env) { return JSON.parse((await env.TT.get("names")) || "[]"); }
 
@@ -85,13 +120,13 @@ async function loadApiKey(env) {
 }
 
 /* ---- ElevenLabs ---- */
-async function makeClip(env, kind, name) {
+async function makeClip(env, kind, spoken) {
   const key = await loadApiKey(env);
   if (!key) return { error: "No ElevenLabs key saved yet" };
   const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_64`, {
     method: "POST",
     headers: { "xi-api-key": key, "Content-Type": "application/json", Accept: "audio/mpeg" },
-    body: JSON.stringify({ text: KINDS[kind](name), model_id: MODEL_ID,
+    body: JSON.stringify({ text: KINDS[kind](spoken), model_id: MODEL_ID,
       voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.45, use_speaker_boost: true } }),
   });
   if (!r.ok) return { error: `ElevenLabs said ${r.status}: ${(await r.text()).slice(0, 200)}` };
@@ -109,7 +144,11 @@ async function nameEndpoint(request, env, url) {
   const kind = url.searchParams.get("k");
   if (!name || !Object.prototype.hasOwnProperty.call(KINDS, kind)) return text("Bad request", 400);
 
-  const audioKey = `audio:${kind}:${name.toLowerCase()}`;
+  const say = cleanSay(url.searchParams.get("s"));
+  if (say === null) return text("Bad request", 400);
+  const spoken = say || toHindi(name);
+  const id = `${name.toLowerCase()}|${spoken}`;
+  const audioKey = `audio2:${kind}:${id}`;
   const stored = await env.TT.get(audioKey, "arrayBuffer");
   if (stored) return audioResp(stored);
 
@@ -118,7 +157,7 @@ async function nameEndpoint(request, env, url) {
 
   // daily limit counts NEW names (all 4 clips of one name = 1)
   const names = await getNames(env);
-  const isNewName = !names.some(x => x.name.toLowerCase() === name.toLowerCase());
+  const isNewName = !names.some(x => `${x.name.toLowerCase()}|${x.spoken || ""}` === id);
   const ck = `count:${today()}`;
   const used = parseInt((await env.TT.get(ck)) || "0", 10);
   if (isNewName && used >= cfg.dailyLimit) return text("Daily limit reached", 429);
@@ -128,11 +167,11 @@ async function nameEndpoint(request, env, url) {
   const devUsed = parseInt((await env.TT.get(dk)) || "0", 10);
   if (isNewName && devUsed >= cfg.perDeviceLimit) return text("Daily limit reached", 429);
 
-  const out = await makeClip(env, kind, name);
+  const out = await makeClip(env, kind, spoken);
   if (out.error) return text("Voice service unavailable", 502);
   await env.TT.put(audioKey, out.audio);
   if (isNewName) {
-    names.unshift({ name, at: new Date().toISOString() });
+    names.unshift({ name, spoken, at: new Date().toISOString() });
     await env.TT.put("names", JSON.stringify(names.slice(0, 500)));
     await env.TT.put(ck, String(used + 1), { expirationTtl: 60 * 60 * 48 });
     await env.TT.put(dk, String(devUsed + 1), { expirationTtl: 60 * 60 * 48 });
@@ -217,14 +256,23 @@ async function adminRouter(request, env, url) {
   if (route === "test" && request.method === "POST") {
     const name = cleanName(body.name);
     if (!name) return json({ error: "Use letters only, up to 20" }, 400);
-    const out = await makeClip(env, "cheer1", name);
+    const say = cleanSay(body.say);
+    if (say === null) return json({ error: "Say-it-like: letters only, up to 30" }, 400);
+    const out = await makeClip(env, "cheer1", say || toHindi(name));
     if (out.error) return json({ error: out.error }, 502);
     return new Response(out.audio, { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store", ...SEC } });
   }
   if (route === "name-delete" && request.method === "POST") {
     const name = cleanName(body.name);
     if (!name) return json({ error: "Bad name" }, 400);
-    await Promise.all(Object.keys(KINDS).map(k => env.TT.delete(`audio:${k}:${name.toLowerCase()}`)));
+    const lower = name.toLowerCase();
+    const old = Object.keys(KINDS).map(k => `audio:${k}:${lower}`);
+    const made = [];
+    for (const k of Object.keys(KINDS)) {
+      const ls = await env.TT.list({ prefix: `audio2:${k}:${lower}|` });
+      ls.keys.forEach(x => made.push(x.name));
+    }
+    await Promise.all([...old, ...made].map(k => env.TT.delete(k)));
     const names = (await getNames(env)).filter(x => x.name.toLowerCase() !== name.toLowerCase());
     await env.TT.put("names", JSON.stringify(names));
     return json({ ok: true });
@@ -268,7 +316,7 @@ const ADMIN_HTML = `<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
  </div>
  <div class="card"><h2>Test the voice</h2>
   <p class="note">Hear Tara say "Yay, ___! You did it!" before a child does. Uses a few credits.</p>
-  <div class="row"><input id="tname" type="text" maxlength="20" placeholder="e.g. Aarav" style="max-width:260px"><button id="test">▶ Play</button></div>
+  <div class="row"><input id="tname" type="text" maxlength="20" placeholder="e.g. Aarav" style="max-width:200px"><input id="tsay" type="text" maxlength="30" placeholder="say it like (optional)" style="max-width:200px"><button id="test">▶ Play</button></div>
  </div>
  <div class="card"><h2>Names made so far</h2>
   <p class="note">Remove a name to make Tara record it again next time (for example if it sounded wrong).</p>
@@ -288,7 +336,7 @@ async function load(){
     : '<span class="pill warn">No key saved yet</span>';
   $('enabled').checked=s.cfg.enabled; $('limit').value=s.cfg.dailyLimit; $('dlimit').value=s.cfg.perDeviceLimit;
   $('usage').textContent='New names made today: '+s.usedToday+' of '+s.cfg.dailyLimit+'.';
-  $('names').innerHTML = s.names.length ? s.names.map(n=>'<tr><td>'+escHtml(n.name)+'</td><td>'+new Date(n.at).toLocaleDateString()+'</td><td><button class="danger" data-n="'+escHtml(n.name)+'">Remove</button></td></tr>').join('')
+  $('names').innerHTML = s.names.length ? s.names.map(n=>'<tr><td>'+escHtml(n.name)+(n.spoken&&n.spoken!==n.name?' <span class="note">('+escHtml(n.spoken)+')</span>':'')+'</td><td>'+new Date(n.at).toLocaleDateString()+'</td><td><button class="danger" data-n="'+escHtml(n.name)+'">Remove</button></td></tr>').join('')
     : '<tr><td colspan="3" class="note">No names yet.</td></tr>';
   document.querySelectorAll('[data-n]').forEach(b=>b.onclick=async()=>{ if(!confirm('Remove '+b.dataset.n+'?'))return; await api('name-delete',{name:b.dataset.n}); toast('Removed'); load(); });
 }
@@ -297,7 +345,7 @@ $('delkey').onclick=async()=>{ if(!confirm('Remove the ElevenLabs key? Name voic
 $('enabled').onchange=async()=>{await api('settings',{enabled:$('enabled').checked}); toast($('enabled').checked?'Name voices ON':'Name voices OFF');};
 $('savecfg').onclick=async()=>{await api('settings',{dailyLimit:Number($('limit').value),perDeviceLimit:Number($('dlimit').value)}); toast('Saved'); load();};
 $('test').onclick=async()=>{ const n=$('tname').value.trim(); if(!n)return; $('test').disabled=true;
-  const r=await api('test',{name:n}); $('test').disabled=false;
+  const r=await api('test',{name:n,say:$('tsay').value.trim()}); $('test').disabled=false;
   if(!r.ok){ const j=await r.json().catch(()=>({})); toast(j.error||'Test failed'); return; }
   new Audio(URL.createObjectURL(await r.blob())).play(); };
 load();
