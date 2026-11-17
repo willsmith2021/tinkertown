@@ -109,7 +109,7 @@ const isManik = () => KID.trim().toLowerCase()==='manik';
 // every child's name (Manik's too) is spoken by the voice helper in Hindi script, so it sounds Indian
 const builtInName = () => false;
 const sayFor = () => PROFILE.say || (isManik() ? 'माणिक' : '');
-const clipId = () => KID + '|' + sayFor() + '|v2';
+const clipId = () => KID + '|' + sayFor() + '|v4';
 const esc = t => String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 /* lines recorded with Manik's name -> name-free versions for every other child */
 const GENERIC = {hello_m:'hello', pick_m:'tapmachine', stage_pick:'stage_pick_g', win1:'win_g1', win2:'e_welldone', win3:'e_super', win4:'e_helper', win5:'win_g5', fin_m:'fin_g'};

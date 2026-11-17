@@ -18,7 +18,8 @@
 //   * /api/name only makes NEW clips up to a daily limit; names made before are served from storage.
 
 const VOICE_ID = "L2s8m9SlLFEtvsBA4vSf";   // Kiara - same Indian-English voice as Tara
-const MODEL_ID = "eleven_multilingual_v2";
+const MODEL_ID = "eleven_v4";                 // same model as Tara's story lines
+const FALLBACK_MODEL = "eleven_multilingual_v2"; // used only if v4 refuses a request
 const KINDS = {
   hello:  n => `Hello, ${n}! I am Tara. Welcome to Tinkertown!`,
   cheer1: n => `Yay, ${n}! You did it!`,
@@ -135,12 +136,18 @@ async function loadApiKey(env) {
 async function makeClip(env, kind, spoken) {
   const key = await loadApiKey(env);
   if (!key) return { error: "No ElevenLabs key saved yet" };
-  const r = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=mp3_44100_64`, {
+  const call = (model, settings, fmt = "mp3_44100_96") => fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE_ID}?output_format=${fmt}`, {
     method: "POST",
     headers: { "xi-api-key": key, "Content-Type": "application/json", Accept: "audio/mpeg" },
-    body: JSON.stringify({ text: KINDS[kind](spoken), model_id: MODEL_ID,
-      voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.45, use_speaker_boost: true } }),
+    body: JSON.stringify({ text: KINDS[kind](spoken), model_id: model, voice_settings: settings }),
   });
+  // try: v4 at full quality -> v4 at the smaller size (some plans) -> the older model.
+  // 401 = bad key, 429 = out of credit/rate: retrying would not help, so stop there.
+  const v4 = { stability: 0.5, similarity_boost: 0.8 };
+  const tries = [() => call(MODEL_ID, v4), () => call(MODEL_ID, v4, "mp3_44100_64"),
+    () => call(FALLBACK_MODEL, { stability: 0.45, similarity_boost: 0.8, style: 0.45, use_speaker_boost: true }, "mp3_44100_64")];
+  let r;
+  for (const t of tries) { r = await t(); if (r.ok || [401, 429].includes(r.status)) break; }
   if (!r.ok) return { error: `ElevenLabs said ${r.status}: ${(await r.text()).slice(0, 200)}` };
   return { audio: await r.arrayBuffer() };
 }
@@ -160,7 +167,7 @@ async function nameEndpoint(request, env, url) {
   if (say === null) return text("Bad request", 400);
   const spoken = say || toHindi(name);
   const id = `${name.toLowerCase()}|${spoken}`;
-  const audioKey = `audio2:${kind}:${id}`;
+  const audioKey = `audio3:${kind}:${id}`;
   const stored = await env.TT.get(audioKey, "arrayBuffer");
   if (stored) return audioResp(stored);
 
@@ -281,8 +288,10 @@ async function adminRouter(request, env, url) {
     const old = Object.keys(KINDS).map(k => `audio:${k}:${lower}`);
     const made = [];
     for (const k of Object.keys(KINDS)) {
-      const ls = await env.TT.list({ prefix: `audio2:${k}:${lower}|` });
-      ls.keys.forEach(x => made.push(x.name));
+      for (const v of ["audio2", "audio3"]) {
+        const ls = await env.TT.list({ prefix: `${v}:${k}:${lower}|` });
+        ls.keys.forEach(x => made.push(x.name));
+      }
     }
     await Promise.all([...old, ...made].map(k => env.TT.delete(k)));
     const names = (await getNames(env)).filter(x => x.name.toLowerCase() !== name.toLowerCase());
