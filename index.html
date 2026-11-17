@@ -266,7 +266,7 @@ function bestVoice(){
   return _bv;
 }
 try{speechSynthesis.onvoiceschanged=()=>{_bv=null;bestVoice();};}catch(e){}
-let AUDIO_BASE=null;  // 'audio/' or '' (site root) - worked out on first play
+let AUDIO_BASE=null;  // '' (site root) or 'audio/' - worked out on first play
 function say(id){
   id = lineFor(id);
   const [who,text] = LINES[id];
@@ -275,7 +275,7 @@ function say(id){
   return new Promise(resolve=>{
     let done=false; const finish=()=>{if(done)return;done=true;resolve();};
     const a = VOICE; currentAudio=a;
-    const bases = AUDIO_BASE===null ? ['audio/',''] : [AUDIO_BASE, AUDIO_BASE==='audio/'?'':'audio/'];
+    const bases = AUDIO_BASE===null ? ['','audio/'] : [AUDIO_BASE, AUDIO_BASE==='audio/'?'':'audio/'];
     let attempt=0, tts=false;
     const speakTTS=()=>{ if(tts||done) return; tts=true;
       try{

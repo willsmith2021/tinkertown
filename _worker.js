@@ -38,6 +38,18 @@ export default {
       return json({ error: "Something went wrong" }, 500);
     }
     if (p === "/_worker.js") return new Response("Not found", { status: 404 });
+    // voice files live at the site root; /audio/x.mp3 is an old path - serve the same file
+    let req = request;
+    if (/^\/audio\/[a-z0-9_]+\.mp3$/.test(p)) {
+      const u = new URL(request.url); u.pathname = p.slice(6);
+      req = new Request(u, request);
+    }
+    // a missing file must say "not found" - never hand back the game page instead (iPads wait on it)
+    if (/\.[a-z0-9]{2,5}$/i.test(p) && p !== "/index.html") {
+      const r = await env.ASSETS.fetch(req);
+      if ((r.headers.get("Content-Type") || "").includes("text/html")) return new Response("Not found", { status: 404 });
+      return r;
+    }
     return env.ASSETS.fetch(request);   // the game itself
   },
 };
