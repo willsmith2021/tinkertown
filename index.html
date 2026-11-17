@@ -69,6 +69,17 @@
   #setup .ghost{background:#EEF2F8;color:#2B2D42}
   #setup .go{width:100%;margin-top:18px;background:#3CCB6B;color:#fff;font-size:clamp(20px,3.6vmin,28px);padding:16px}
   #setup .go:disabled{opacity:.45}
+  #creditsBtn{position:fixed;right:calc(var(--sar) + var(--gap));bottom:calc(var(--sab) + var(--gap));background:#fff;border:none;border-radius:999px;box-shadow:0 5px 0 #00000022;font-family:inherit;font-weight:800;font-size:calc(var(--btn)*.24);padding:calc(var(--btn)*.14) calc(var(--btn)*.3);color:#2B2D42;cursor:pointer;z-index:15;display:none}
+  #credits{position:fixed;inset:0;background:#BFE9FFf2;display:none;align-items:center;justify-content:center;z-index:40;padding:calc(var(--sat) + 12px) calc(var(--sar) + 12px) calc(var(--sab) + 12px) calc(var(--sal) + 12px);box-sizing:border-box;overflow:auto;touch-action:auto}
+  #credits .card{background:#fff;border-radius:28px;box-shadow:0 10px 0 #00000018;padding:clamp(18px,3.5vmin,36px);width:min(560px,100%);box-sizing:border-box;color:#2B2D42;margin:auto;text-align:center}
+  #credits h2{margin:0 0 14px;font-size:clamp(22px,4vmin,34px);color:#7B3FE4}
+  #credits .role{font-size:clamp(13px,2.2vmin,16px);font-weight:800;letter-spacing:.08em;text-transform:uppercase;opacity:.55;margin:14px 0 2px}
+  #credits .who{font-size:clamp(22px,4vmin,32px);font-weight:900;margin:0}
+  #credits .thought{background:#FFF6E5;border-radius:18px;padding:clamp(12px,2.4vmin,20px);margin:16px 0 4px;font-size:clamp(14px,2.4vmin,18px);line-height:1.5;text-align:left}
+  #credits .thought b{display:block;color:#E8743B;margin-bottom:4px}
+  #credits .small{font-size:13px;opacity:.6;margin-top:12px}
+  #credits button{font-family:inherit;font-weight:900;border:none;border-radius:999px;cursor:pointer;width:100%;margin-top:16px;background:#3CCB6B;color:#fff;font-size:clamp(18px,3.2vmin,24px);padding:14px}
+  @media (max-height:520px){ #credits .thought{font-size:13px;line-height:1.35} #credits .role{margin-top:6px} }
   #setup .small{font-size:13px;opacity:.7;margin-top:6px}
   @media (max-height:520px){ #setup .card p, #setup .small{display:none} #setup h2{margin:0 0 6px} #setup input{padding:10px 14px} #setup label{margin-top:6px!important} }
 </style>
@@ -82,6 +93,18 @@
 <div id="xhint">Grown-ups: hold ✕ for 2 seconds to exit</div>
 <div id="resume"><button>▶ Keep playing</button></div>
 <button id="gear" aria-label="Grown-up settings">⚙️</button>
+<button id="creditsBtn" aria-label="Credits">ⓘ Credits</button>
+<div id="credits"><div class="card">
+  <h2>🛠️ Credits</h2>
+  <div class="role">Developer</div>
+  <p class="who">Rishubh Teotia</p>
+  <div class="thought"><b>The thought behind Tinkertown</b>
+    It started with a little boy, Manik, who loves bulldozers, cranes and diggers and could watch them work for hours.
+    Tinkertown turns that love into learning: each machine helps him count, spot colours and shapes, and learn letters,
+    with a friendly story he can play all by himself. Made with love for Manik, and for every little builder out there.</div>
+  <div class="small">Voices: Tara and Grumble, made with ElevenLabs</div>
+  <button id="creditsClose">Back to the game ▶</button>
+</div></div>
 <div id="turn"></div>
 <div id="rotate"><svg viewBox="0 0 200 200" width="38%" style="max-width:260px"><g class="rot"><rect x="55" y="20" width="90" height="160" rx="18" fill="#2B2D42"/><rect x="63" y="34" width="74" height="122" rx="8" fill="#BFE9FF"/><circle cx="100" cy="168" r="6" fill="#fff"/></g><path d="M170 120 A75 75 0 0 1 120 175" stroke="#7B3FE4" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M112 160 L118 182 L138 172 Z" fill="#7B3FE4"/></svg><div class="msg">Turn me sideways to play!</div></div>
 <div id="setup"><div class="card">
@@ -479,7 +502,7 @@ const FRESH=()=>({boulder:false,splash:false,stretch:false,digby:false,tipper:fa
 let progress = FRESH();
 let sceneToken = 0;   // cancels old async scenes
 const live = t => t===sceneToken;
-function setScene(html){ if(typeof gearBtn!=='undefined') gearBtn.style.display='none'; sceneToken++; svg.innerHTML = html; return sceneToken; }
+function setScene(html){ if(typeof gearBtn!=='undefined') gearBtn.style.display='none'; const cb=document.getElementById('creditsBtn'); if(cb) cb.style.display='none'; sceneToken++; svg.innerHTML = html; return sceneToken; }
 const $ = id => svg.querySelector('#'+id);
 function celebrate(){ svg.insertAdjacentHTML('beforeend', confetti()); sfx('ding'); }
 
@@ -930,8 +953,8 @@ function titleScene(){
     ${bulldozer(1280,800,.8)}
     <g id="play" class="tap"><g class="pulse"><circle cx="800" cy="530" r="160" fill="${C.green}"/><circle cx="800" cy="530" r="160" fill="none" stroke="#fff" stroke-width="14"/>
       <path d="M752 450 L885 530 L752 610 Z" fill="#fff" stroke="#fff" stroke-width="18" stroke-linejoin="round"/></g></g>`);
-  gearBtn.style.display='block';
-  $('play').onclick = ()=>{ gearBtn.style.display='none'; sfx('pop'); enterLock(); try{speechSynthesis.getVoices();}catch(e){} introScene(); };
+  gearBtn.style.display='block'; creditsBtn.style.display='block';
+  $('play').onclick = ()=>{ gearBtn.style.display='none'; creditsBtn.style.display='none'; sfx('pop'); enterLock(); try{speechSynthesis.getVoices();}catch(e){} introScene(); };
 }
 async function introScene(){
   const t=setScene(`${backdrop(false)}${road()}
@@ -1341,6 +1364,10 @@ nameIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ nameIn.blur(); } });
 sayIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ sayIn.blur(); } });
 setupEl.addEventListener('touchmove',e=>e.stopPropagation(),{passive:true});
 gearBtn.addEventListener('click',openSetup);
+const creditsBtn=document.getElementById('creditsBtn'), creditsEl=document.getElementById('credits');
+creditsBtn.addEventListener('click',()=>{ creditsEl.style.display='flex'; hideSub(); });
+document.getElementById('creditsClose').addEventListener('click',()=>{ creditsEl.style.display='none'; });
+creditsEl.addEventListener('touchmove',e=>e.stopPropagation(),{passive:true});
 goBtn.addEventListener('click',async()=>{
   const nm=nameIn.value.trim().replace(/\s+/g,' ').slice(0,14); if(!nm) return;
   const say=sayIn.value.normalize('NFC').trim().replace(/\s+/g,' ').slice(0,30);
