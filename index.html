@@ -2,21 +2,18 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="theme-color" content="#BFE9FF">
 <title>Tinkertown Fix-It Crew</title>
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><link rel="manifest" href="manifest.webmanifest">
 <style>
   html,body{margin:0;height:100%;background:#BFE9FF;overflow:hidden;touch-action:none;overscroll-behavior:none;position:fixed;inset:0;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;font-family:"Baloo 2","Nunito","Trebuchet MS",system-ui,sans-serif}
-  #stage{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
-  svg#scene{width:100vw;height:100vh;display:block}
-  #sub{position:fixed;left:50%;top:2vh;transform:translateX(-50%);max-width:66vw;background:#ffffffee;color:#2B2D42;border-radius:28px;padding:14px 28px;font-size:clamp(22px,3.6vw,44px);font-weight:800;line-height:1.2;text-align:center;box-shadow:0 6px 0 #00000018;opacity:0;transition:opacity .25s;pointer-events:none}
+  svg#scene{width:100vw;height:100vh;height:100dvh;display:block}
   #sub.on{opacity:1}
   #sub b{color:#7B3FE4;margin-right:.35em}
   #sub b.g{color:#5A7D9A}
-  #home{position:fixed;top:2vh;left:2vh;width:12vh;height:12vh;min-width:64px;min-height:64px;border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;display:none;align-items:center;justify-content:center;font-size:5vh;cursor:pointer}
   #home .ring{position:absolute;inset:-6px;border-radius:50%;border:6px solid #7B3FE4;clip-path:inset(0 100% 0 0);transition:clip-path 0s}
   #home.holding .ring{clip-path:inset(0 0 0 0);transition:clip-path 1.5s linear}
-  #ccbtn{position:fixed;top:3vh;left:calc(4vh + max(12vh,64px));width:10vh;height:10vh;min-width:56px;min-height:56px;border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;font-weight:900;font-size:3vh;color:#2B2D42;cursor:pointer}
   #ccbtn.off{opacity:.45}
   .tap{cursor:pointer}
   @keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
@@ -38,13 +35,43 @@
   .spin{animation:spin .5s linear infinite;transform-box:fill-box;transform-origin:center}
   .sunspin{animation:spin 1s ease-out 1;transform-box:fill-box;transform-origin:center}
   .flap{animation:flap .35s ease-in-out infinite;transform-box:fill-box;transform-origin:center}
-  #xbtn{position:fixed;top:2vh;right:2vh;width:12vh;height:12vh;min-width:64px;min-height:64px;border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;display:none;align-items:center;justify-content:center;font-size:6vh;font-weight:900;color:#E63946;cursor:pointer;z-index:20}
   #xbtn .ring{position:absolute;inset:-6px;border-radius:50%;border:6px solid #E63946;clip-path:inset(0 100% 0 0);transition:clip-path 0s}
   #xbtn.holding .ring{clip-path:inset(0 0 0 0);transition:clip-path 2s linear}
-  #xhint{position:fixed;top:calc(4vh + max(12vh,64px));right:2vh;background:#2B2D42;color:#fff;font-weight:800;font-size:clamp(14px,2.2vw,22px);padding:10px 16px;border-radius:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:20}
   #xhint.on{opacity:1}
   #resume{position:fixed;inset:0;background:#2B2D42cc;display:none;align-items:center;justify-content:center;z-index:30}
   #resume button{font:900 clamp(28px,5vw,60px) inherit;font-family:inherit;color:#fff;background:#3CCB6B;border:none;border-radius:999px;padding:4vh 7vw;box-shadow:0 10px 0 #00000033;cursor:pointer}
+
+  :root{--sat:env(safe-area-inset-top,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px);--sab:env(safe-area-inset-bottom,0px);
+        --btn:clamp(52px,min(11vh,11vw),96px);--gap:clamp(8px,1.6vmin,18px)}
+  #stage{position:fixed;inset:0;display:block}
+  #sub{position:fixed;left:50%;top:calc(var(--sat) + var(--gap));transform:translateX(-50%);max-width:calc(100vw - 2*(var(--btn)*2 + var(--gap)*3) - var(--sal) - var(--sar));min-width:min(40vw,320px);box-sizing:border-box;background:#ffffffee;color:#2B2D42;border-radius:clamp(14px,2.4vmin,28px);padding:clamp(6px,1.2vmin,14px) clamp(12px,2.4vmin,28px);font-size:clamp(15px,min(3.4vw,5.2vh),42px);font-weight:800;line-height:1.2;text-align:center;box-shadow:0 6px 0 #00000018;opacity:0;transition:opacity .25s;pointer-events:none;z-index:10}
+  #home{position:fixed;top:calc(var(--sat) + var(--gap));left:calc(var(--sal) + var(--gap));width:var(--btn);height:var(--btn);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;display:none;align-items:center;justify-content:center;font-size:calc(var(--btn)*.45);cursor:pointer;z-index:15;padding:0}
+  #ccbtn{position:fixed;top:calc(var(--sat) + var(--gap));left:calc(var(--sal) + var(--btn) + var(--gap)*2);width:calc(var(--btn)*.82);height:calc(var(--btn)*.82);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;font-weight:900;font-size:calc(var(--btn)*.26);color:#2B2D42;cursor:pointer;z-index:15;padding:0}
+  #xbtn{position:fixed;top:calc(var(--sat) + var(--gap));right:calc(var(--sar) + var(--gap));width:var(--btn);height:var(--btn);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;display:none;align-items:center;justify-content:center;font-size:calc(var(--btn)*.48);font-weight:900;color:#E63946;cursor:pointer;z-index:20;padding:0}
+  #xhint{position:fixed;top:calc(var(--sat) + var(--btn) + var(--gap)*2);right:calc(var(--sar) + var(--gap));background:#2B2D42;color:#fff;font-weight:800;font-size:clamp(13px,2vmin,20px);padding:10px 16px;border-radius:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:20}
+  #gear{position:fixed;top:calc(var(--sat) + var(--gap));left:calc(var(--sal) + var(--btn) + var(--gap)*2 + var(--btn)*.82 + var(--gap));width:calc(var(--btn)*.82);height:calc(var(--btn)*.82);border-radius:50%;background:#fff;border:none;box-shadow:0 6px 0 #00000022;font-size:calc(var(--btn)*.36);cursor:pointer;z-index:15;display:none;padding:0}
+  #turn{position:fixed;left:50%;bottom:calc(var(--sab) + 2vh);transform:translateX(-50%);background:#2B2D42e6;color:#fff;font-weight:800;font-size:clamp(14px,3.6vw,22px);padding:10px 18px;border-radius:999px;pointer-events:none;opacity:0;transition:opacity .4s;z-index:12;white-space:nowrap}
+  #turn.on{opacity:1}
+  #rotate{position:fixed;inset:0;background:#BFE9FF;display:none;flex-direction:column;align-items:center;justify-content:center;gap:4vh;z-index:35}
+  #rotate .msg{font-weight:900;font-size:clamp(24px,6.5vw,44px);color:#7B3FE4;text-align:center;padding:0 6vw}
+  #rotate .rot{transform-origin:100px 100px;animation:rotph 2.4s ease-in-out infinite}
+  @keyframes rotph{0%,25%{transform:rotate(0)}55%,85%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
+  @media (orientation:portrait) and (max-aspect-ratio:9/10){ #rotate{display:flex} }
+  #setup{position:fixed;inset:0;background:#BFE9FFf2;display:none;align-items:center;justify-content:center;z-index:40;padding:calc(var(--sat) + 12px) calc(var(--sar) + 12px) calc(var(--sab) + 12px) calc(var(--sal) + 12px);box-sizing:border-box;overflow:auto;touch-action:auto}
+  #setup .card{background:#fff;border-radius:28px;box-shadow:0 10px 0 #00000018;padding:clamp(18px,3.5vmin,36px);width:min(560px,100%);box-sizing:border-box;color:#2B2D42;margin:auto}
+  #setup h2{margin:0 0 4px;font-size:clamp(22px,4vmin,34px);color:#7B3FE4}
+  #setup p{margin:0 0 16px;font-size:clamp(14px,2.4vmin,18px);opacity:.8}
+  #setup label{display:block;font-weight:800;margin:10px 0 6px;font-size:clamp(15px,2.6vmin,19px)}
+  #setup input{width:100%;box-sizing:border-box;font:800 20px inherit;font-family:inherit;padding:14px 16px;border:3px solid #DDE3EE;border-radius:16px;outline:none;-webkit-user-select:text;user-select:text}
+  #setup input:focus{border-color:#7B3FE4}
+  #setup .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
+  #setup button{font-family:inherit;font-weight:900;border:none;border-radius:999px;cursor:pointer;font-size:clamp(15px,2.6vmin,19px);padding:12px 18px}
+  #setup .rec{background:#FFE8EC;color:#E63946}
+  #setup .rec.on{background:#E63946;color:#fff}
+  #setup .ghost{background:#EEF2F8;color:#2B2D42}
+  #setup .go{width:100%;margin-top:18px;background:#3CCB6B;color:#fff;font-size:clamp(20px,3.6vmin,28px);padding:16px}
+  #setup .go:disabled{opacity:.45}
+  #setup .small{font-size:13px;opacity:.7;margin-top:6px}
 </style>
 </head>
 <body>
@@ -55,9 +82,34 @@
 <button id="xbtn" aria-label="Exit (grown-ups: hold)"><span class="ring"></span>✕</button>
 <div id="xhint">Grown-ups: hold ✕ for 2 seconds to exit</div>
 <div id="resume"><button>▶ Keep playing</button></div>
+<button id="gear" aria-label="Grown-up settings">⚙️</button>
+<div id="turn"></div>
+<div id="rotate"><svg viewBox="0 0 200 200" width="38%" style="max-width:260px"><g class="rot"><rect x="55" y="20" width="90" height="160" rx="18" fill="#2B2D42"/><rect x="63" y="34" width="74" height="122" rx="8" fill="#BFE9FF"/><circle cx="100" cy="168" r="6" fill="#fff"/></g><path d="M170 120 A75 75 0 0 1 120 175" stroke="#7B3FE4" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M112 160 L118 182 L138 172 Z" fill="#7B3FE4"/></svg><div class="msg">Turn me sideways to play!</div></div>
+<div id="setup"><div class="card">
+  <h2>👋 Hello, grown-up!</h2>
+  <p>Set up the game for your child. You can change this later with ⚙️ on the start screen.</p>
+  <label for="kidname">Child's name</label>
+  <input id="kidname" maxlength="14" autocomplete="off" autocapitalize="words" placeholder="e.g. Aarav" enterkeyhint="done">
+  <label>Say the name in your voice <span style="font-weight:600;opacity:.7">(optional)</span></label>
+  <div class="row"><button class="rec" id="recbtn">🎙 Record name</button><button class="ghost" id="playname" style="display:none">▶ Hear it</button><button class="ghost" id="delname" style="display:none">✕ Remove</button></div>
+  <div class="small" id="recnote">Tap record and say just the name, e.g. "Aarav!". It plays every time your child wins.</div>
+  <button class="go" id="setupgo" disabled>Let's play! ▶</button>
+</div></div>
 
 <script>
-const KID = "Manik";
+/* ============ CHILD PROFILE ============ */
+const PROFILE_KEY='tinkertown_profile';
+let PROFILE={name:'',voice:'',clips:null,clipsFor:''};
+try{ const r=localStorage.getItem(PROFILE_KEY); if(r) PROFILE=Object.assign(PROFILE,JSON.parse(r)); }catch(e){}
+// existing installs made for Manik keep his name and stars
+try{ if(!PROFILE.name && localStorage.getItem('tinkertown_manik_v2')) PROFILE.name='Manik'; }catch(e){}
+function saveProfile(){ try{ localStorage.setItem(PROFILE_KEY,JSON.stringify(PROFILE)); }catch(e){} }
+let KID = PROFILE.name;
+const isManik = () => KID.trim().toLowerCase()==='manik';
+const esc = t => String(t).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+/* lines recorded with Manik's name -> name-free versions for every other child */
+const GENERIC = {hello_m:'hello', pick_m:'tapmachine', stage_pick:'stage_pick_g', win1:'win_g1', win2:'e_welldone', win3:'e_super', win4:'e_helper', win5:'win_g5', fin_m:'fin_g'};
+const lineFor = id => (!isManik() && GENERIC[id]) ? GENERIC[id] : id;
 /* ============ VOICE + SUBTITLES ============ */
 const LINES = {
   hello:["Tara","Hello! I am Tara. Welcome to Tinkertown!"],
@@ -171,6 +223,8 @@ const LINES = {
   done_train:["Tara","It is a train! Choo choo!"],
   rub_plane:["Tara","Clouds are hiding something! Rub the clouds away!"],
   done_plane:["Tara","It is an aeroplane! Zoom!"],
+  stage_pick_g:["Tara","Tap a number to play!"], win_g1:["Tara","Yay! You did it!"], win_g5:["Tara","Wow! Clap, clap, clap!"],
+  fin_g:["Tara","Thank you! You helped all of Tinkertown!"],
   g_sorry:["Grumble","Sorry, everyone. I was sad. I had no friends."],
   g_yes:["Grumble","Yes! I will water the flowers!"],
   g_rain:["Grumble","Rain, rain, for the flowers!"]
@@ -183,7 +237,7 @@ const subEl = document.getElementById('sub');
 let currentAudio = null;
 function showSub(who,text){
   if(!ccOn){subEl.classList.remove('on');return;}
-  subEl.innerHTML = `<b class="${who==='Grumble'?'g':''}">${who}:</b>${text}`;
+  subEl.innerHTML = who ? `<b class="${who==='Grumble'?'g':''}">${who}:</b>${text}` : text;
   subEl.classList.add('on');
 }
 function hideSub(){subEl.classList.remove('on');}
@@ -210,6 +264,7 @@ function bestVoice(){
 try{speechSynthesis.onvoiceschanged=()=>{_bv=null;bestVoice();};}catch(e){}
 let AUDIO_BASE=null;  // 'audio/' or '' (site root) - worked out on first play
 function say(id){
+  id = lineFor(id);
   const [who,text] = LINES[id];
   showSub(who,text);
   if(currentAudio){try{currentAudio.pause();}catch(e){}}
@@ -393,14 +448,14 @@ function ball(x,y,r,color,id){
     <rect x="${-r*1.2}" y="${-r*2.3}" width="${r*2.4}" height="${r*2.4}" fill="transparent"/></g>`;
 }
 function backdrop(clean=true){
-  return `<rect width="1600" height="900" fill="${clean?C.sky:'#C9D3DD'}"/>
+  return `<rect x="-3000" y="-4000" width="7600" height="4900" fill="${clean?C.sky:'#C9D3DD'}"/>
   <g id="sun" class="tap"><circle cx="1400" cy="140" r="80" fill="${clean?'#FFD23F':'#E3E3C8'}"/>${clean?`<circle cx="1375" cy="128" r="8" fill="${C.dark}"/><circle cx="1425" cy="128" r="8" fill="${C.dark}"/><path d="M1378 160 Q1400 178 1422 160" stroke="${C.dark}" stroke-width="6" fill="none" stroke-linecap="round"/>`:''}</g>
-  <path d="M0 560 Q300 420 650 540 T1300 520 T1600 500 V900 H0Z" fill="${clean?C.hill1:'#A9C4A4'}"/>
-  <path d="M0 640 Q400 540 800 630 T1600 600 V900 H0Z" fill="${clean?C.hill2:'#8DAF8C'}"/>`;
+  <path d="M-3000 560 L0 560 Q300 420 650 540 T1300 520 T1600 500 L4600 500 V2900 H-3000Z" fill="${clean?C.hill1:'#A9C4A4'}"/>
+  <path d="M-3000 640 L0 640 Q400 540 800 630 T1600 600 L4600 600 V2900 H-3000Z" fill="${clean?C.hill2:'#8DAF8C'}"/>`;
 }
 function road(y=760){
-  return `<rect x="0" y="${y-20}" width="1600" height="200" fill="${C.road}"/>
-  ${Array.from({length:9},(_,i)=>`<rect x="${i*190+20}" y="${y+60}" width="110" height="16" rx="8" fill="${C.line}"/>`).join('')}`;
+  return `<rect x="-3000" y="${y-20}" width="7600" height="2200" fill="${C.road}"/>
+  ${Array.from({length:40},(_,i)=>`<rect x="${(i-15)*190+20}" y="${y+60}" width="110" height="16" rx="8" fill="${C.line}"/>`).join('')}`;
 }
 function star(x,y,r,fill=C.yellow){
   const p=[];for(let i=0;i<10;i++){const a=-Math.PI/2+i*Math.PI/5, rr=i%2?r*.45:r;p.push(`${x+Math.cos(a)*rr},${y+Math.sin(a)*rr}`);}
@@ -420,7 +475,7 @@ const FRESH=()=>({boulder:false,splash:false,stretch:false,digby:false,tipper:fa
 let progress = FRESH();
 let sceneToken = 0;   // cancels old async scenes
 const live = t => t===sceneToken;
-function setScene(html){ sceneToken++; svg.innerHTML = html; return sceneToken; }
+function setScene(html){ if(typeof gearBtn!=='undefined') gearBtn.style.display='none'; sceneToken++; svg.innerHTML = html; return sceneToken; }
 const $ = id => svg.querySelector('#'+id);
 function celebrate(){ svg.insertAdjacentHTML('beforeend', confetti()); sfx('ding'); }
 
@@ -824,10 +879,45 @@ const STAGES={
 };
 
 /* ============ SAVED PROGRESS (stays on this device) ============ */
-const SAVE_KEY='tinkertown_manik_v2';
+const saveKey = () => isManik() ? 'tinkertown_manik_v2' : 'tinkertown_v3_' + (KID.trim().toLowerCase().replace(/[^a-z0-9]+/g,'-') || 'kid');
 let SAVE={stars:{},story:false};
-try{ const r=localStorage.getItem(SAVE_KEY); if(r) SAVE=Object.assign(SAVE,JSON.parse(r)); }catch(e){}
-function persist(){ try{ localStorage.setItem(SAVE_KEY,JSON.stringify(SAVE)); }catch(e){} }
+function loadSave(){ SAVE={stars:{},story:false}; try{ const r=localStorage.getItem(saveKey()); if(r) SAVE=Object.assign(SAVE,JSON.parse(r)); }catch(e){} }
+loadSave();
+function persist(){ try{ localStorage.setItem(saveKey(),JSON.stringify(SAVE)); }catch(e){} }
+
+/* Tara saying this child's name - made once by the site's voice helper, then kept on the device */
+const CLIP_TEXT = { hello:n=>`Hello, ${n}! I am Tara. Welcome to Tinkertown!`, cheer1:n=>`Yay, ${n}! You did it!`, cheer2:n=>`Well done, ${n}!`, cheer3:n=>`Super, ${n}! You are a star!` };
+const hasClips = () => PROFILE.clips && PROFILE.clipsFor===KID && !isManik();
+async function fetchNameClips(name, onStatus){
+  if(!/^https?:$/.test(location.protocol)) return null;
+  const blobToData = b => new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.onerror=()=>r(null); fr.readAsDataURL(b); });
+  const out={};
+  for(const k of Object.keys(CLIP_TEXT)){
+    try{
+      onStatus && onStatus(k);
+      const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),15000);
+      const r=await fetch(`/api/name?n=${encodeURIComponent(name)}&k=${k}`,{signal:ctl.signal}); clearTimeout(tm);
+      if(!r.ok || !(r.headers.get('Content-Type')||'').includes('audio')) return null;
+      out[k]=await blobToData(await r.blob()); if(!out[k]) return null;
+    }catch(e){ return null; }
+  }
+  return out;
+}
+function playData(src, subtitle){
+  return new Promise(res=>{
+    let done=false; const fin=()=>{ if(!done){done=true;res();} };
+    try{ if(subtitle) showSub('Tara',esc(subtitle)); const a=new Audio(src); a.onended=fin; a.onerror=fin; a.play().catch(fin); setTimeout(fin,6000); }catch(e){ fin(); }
+  });
+}
+
+/* plays the grown-up's recording of the child's name, if there is one */
+function playName(){
+  return new Promise(res=>{
+    if(!PROFILE.voice) return res();
+    let done=false; const fin=()=>{ if(!done){done=true;res();} };
+    try{ showSub('',esc(KID)+'!'); const a=new Audio(PROFILE.voice); a.onended=fin; a.onerror=fin; a.play().catch(fin); setTimeout(fin,4000); }catch(e){ fin(); }
+  });
+}
 const starKey=(w,i)=>`${w}-${i}`;
 const worldStars=w=>STAGES[w].filter((_,i)=>SAVE.stars[starKey(w,i)]).length;
 const totalStars=()=>Object.keys(SAVE.stars).length;
@@ -837,12 +927,13 @@ function titleScene(){
   homeBtn.style.display='none'; hideSub();
   setScene(`${backdrop()}${road()}
     <text x="800" y="170" text-anchor="middle" font-size="110" font-weight="900" fill="${C.purple}" stroke="#fff" stroke-width="14" paint-order="stroke">Tinkertown</text>
-    <text x="800" y="250" text-anchor="middle" font-size="58" font-weight="800" fill="${C.dark}">${KID}'s Fix-It Crew</text>
+    <text x="800" y="250" text-anchor="middle" font-size="58" font-weight="800" fill="${C.dark}">${KID?esc(KID)+"'s ":''}Fix-It Crew</text>
     <g class="bob">${tara(300,760,1.15)}</g>
     ${bulldozer(1280,800,.8)}
     <g id="play" class="tap"><g class="pulse"><circle cx="800" cy="530" r="160" fill="${C.green}"/><circle cx="800" cy="530" r="160" fill="none" stroke="#fff" stroke-width="14"/>
       <path d="M752 450 L885 530 L752 610 Z" fill="#fff" stroke="#fff" stroke-width="18" stroke-linejoin="round"/></g></g>`);
-  $('play').onclick = ()=>{ sfx('pop'); enterLock(); try{speechSynthesis.getVoices();}catch(e){} introScene(); };
+  gearBtn.style.display='block';
+  $('play').onclick = ()=>{ gearBtn.style.display='none'; sfx('pop'); enterLock(); try{speechSynthesis.getVoices();}catch(e){} introScene(); };
 }
 async function introScene(){
   const t=setScene(`${backdrop(false)}${road()}
@@ -851,7 +942,8 @@ async function introScene(){
     ${[0,1,2,3,4,5].map(i=>`<rect class="drop" style="animation-delay:${i*.15}s" x="${1060+i*40}" y="310" width="8" height="30" rx="4" fill="#6B7A90"/>`).join('')}
     <g class="bob">${tara(420,760,1.15)}</g>`);
   homeBtn.style.display='flex';
-  await say('hello_m'); if(!live(t))return;
+  if(hasClips()){ await playData(PROFILE.clips.hello, CLIP_TEXT.hello(KID)); if(!live(t))return; }
+  else { await say('hello_m'); if(!live(t))return; if(!isManik() && PROFILE.voice){ await playName(); if(!live(t))return; } }
   await say('ohno'); if(!live(t))return;
   menuScene();
 }
@@ -901,11 +993,12 @@ function playStage(wid,i){
 async function winStage(ctx,t){
   celebrate();
   svg.insertAdjacentHTML('beforeend',`<g pointer-events="none" class="pop">
-    <rect x="420" y="330" width="760" height="230" rx="60" fill="#fff" stroke="${C.yellow}" stroke-width="14"/>
-    ${star(540,445,70)}${star(1060,445,70)}
-    <text x="800" y="480" text-anchor="middle" font-size="96" font-weight="900" fill="${C.purple}">Yay ${KID}!</text></g>`);
+    <rect x="300" y="330" width="1000" height="230" rx="60" fill="#fff" stroke="${C.yellow}" stroke-width="14"/>
+    ${star(395,445,62)}${star(1205,445,62)}
+    <text x="800" y="480" text-anchor="middle" font-size="${KID.length>6?Math.max(52,96-(KID.length-6)*7):96}" font-weight="900" fill="${C.purple}">Yay${KID?' '+esc(KID):''}!</text></g>`);
   SAVE.stars[starKey(ctx.wid,ctx.i)]=true; persist();
-  await say(pick(['win1','win2','win3','win4','win5'])); if(!live(t)) return;
+  if(hasClips()){ const k=pick(['cheer1','cheer2','cheer3']); await playData(PROFILE.clips[k], CLIP_TEXT[k](KID)); if(!live(t)) return; }
+  else { await playName(); if(!live(t)) return; await say(pick(['win1','win2','win3','win4','win5'])); if(!live(t)) return; }
   await sleep(500); if(!live(t)) return;
   if(totalStars()>=30 || (!SAVE.story && WORLDS.every(w=>worldStars(w.id)>0))) return menuScene();
   stageMap(ctx.wid);
@@ -963,7 +1056,7 @@ async function findStage(ctx){
   let t;
   function draw(list){
     const xs=slots(list.length), sc=scaleFor(list.length), cw=1500/list.length;
-    t=setScene(`${backdrop()}<rect x="0" y="790" width="1600" height="110" fill="${C.hill2}"/>
+    t=setScene(`${backdrop()}<rect x="-3000" y="790" width="7600" height="2110" fill="${C.hill2}"/>
       ${list.map((k,i)=>`<g id="c_${k}" class="tap choice" data-k="${k}"><g class="cbody">${ITEMS[k].draw(xs[i],840,sc)}</g>
         <rect x="${xs[i]-cw/2+8}" y="260" width="${cw-16}" height="620" fill="transparent"/></g>`).join('')}
       <g id="fx"></g>${mascot(ctx.wid,120,895,.3)}`);
@@ -1018,7 +1111,7 @@ async function findStage(ctx){
 async function digStage(ctx){
   const st=ctx.st;
   const t=setScene(`${backdrop()}
-    <rect x="0" y="720" width="1600" height="180" fill="#F2D49B"/>
+    <rect x="-3000" y="720" width="7600" height="2180" fill="#F2D49B"/>
     <g id="digger" class="honk">${excavator(300,870,.9)}</g>
     <g id="pileWrap" class="tap"></g><g id="found"></g><g id="dust"></g>`);
   wireFun();
@@ -1066,7 +1159,7 @@ async function holesStage(ctx){
     <rect x="160" y="290" width="1280" height="300" rx="44" fill="#C99A5B"/>
     <rect x="160" y="290" width="1280" height="300" rx="44" fill="none" stroke="#A97B3F" stroke-width="12"/>
     ${kinds.map(k=>`<g id="hole_${k}" transform="translate(${holes[k].x} ${holes[k].y})"><g class="hin">${shapePath(k,SHAPECOL[k],r+10,true)}</g></g>`).join('')}
-    <rect x="0" y="640" width="1600" height="260" fill="#F2D49B"/>
+    <rect x="-3000" y="640" width="7600" height="2260" fill="#F2D49B"/>
     <g id="truck"><g class="honk">${dumpTruck(110,900,.42)}</g></g>
     <g id="shapes">${kinds.map(k=>`<g id="sh_${k}" class="shape tap" data-k="${k}" transform="translate(${homes[k].x} ${homes[k].y})"><g class="pop">${shapePath(k,SHAPECOL[k],r)}</g><circle r="${r+40}" fill="transparent"/></g>`).join('')}</g>`);
   wireFun(); sfx('pop');
@@ -1123,7 +1216,7 @@ async function rubStage(ctx){
       : `<g class="leaf" data-x="${x}" data-y="${y}" transform="translate(${x} ${y}) rotate(0)"><circle r="${55+Math.random()*30}" fill="${coverCol[i%3]}"/></g>`; }
   const t=setScene(`${backdrop()}${scene}<g id="leaves">${covers}</g>
     <g id="sw" style="transition:transform .25s ease-out"><g class="honk">${sweeper(0,890,.5)}</g></g>
-    <rect id="rub" x="0" y="250" width="1600" height="650" fill="transparent"/>`);
+    <rect id="rub" x="-3000" y="250" width="7600" height="2650" fill="transparent"/>`);
   wireFun();
   const sw=$('sw'); sw.style.transform='translateX(150px)';
   let swept=0, half=false, finished=false;
@@ -1165,7 +1258,7 @@ async function finaleScene(champion){
     <g id="rainbow" opacity="0" style="transition:opacity 1.5s">
       ${[C.red,C.orange,C.yellow,C.green,C.blue,C.purple].map((c,i)=>`<path d="M${200+i*28} 640 A${600-i*28} ${520-i*28} 0 0 1 ${1400-i*28} 640" stroke="${c}" stroke-width="30" fill="none"/>`).join('')}
     </g>
-    <rect x="0" y="700" width="1600" height="200" fill="${C.hill2}"/>${flowers}
+    <rect x="-3000" y="700" width="7600" height="2200" fill="${C.hill2}"/>${flowers}
     <g class="bob">${tara(300,860,1)}</g>
     <g id="gr">${grumble(1100,280,1)}</g><g id="rain"></g>`);
   if(champion){ await say('fin_m'); if(!live(t))return; } else { await say('all_clean'); if(!live(t))return; }
@@ -1224,7 +1317,64 @@ const xEnd=()=>{ xbtn.classList.remove('holding'); clearTimeout(xT); setTimeout(
 /* Home button: hold 1.5 s (parent gate) */
 homeBtn.addEventListener('click',()=>{ sfx('pop'); try{VOICE.pause();}catch(e){} try{speechSynthesis.cancel();}catch(e){} menuScene(); });
 
-titleScene();
+/* ============ FIT ANY SCREEN (phones, tablets, portrait & landscape) ============ */
+// Everything is drawn in a 1600x900 "safe area". The visible area grows sideways on wide
+// phones and upwards on taller tablets, so nothing is cut off and there are no empty bars.
+function fitView(){
+  const vv=window.visualViewport, W=(vv&&vv.width)||innerWidth, H=(vv&&vv.height)||innerHeight;
+  const a=W/H; let x=0,y=0,w=1600,h=900;
+  if(a>=16/9){ w=900*a; x=-(w-1600)/2; } else { h=1600/a; y=900-h; }
+  svg.setAttribute('viewBox',`${x.toFixed(1)} ${y.toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}`);
+  const turn=document.getElementById('turn');
+}
+['resize','orientationchange'].forEach(ev=>addEventListener(ev,()=>{ fitView(); setTimeout(fitView,300); }));
+if(window.visualViewport) visualViewport.addEventListener('resize',fitView);
+fitView();
+
+/* ============ GROWN-UP SETUP ============ */
+const gearBtn=document.getElementById('gear'), setupEl=document.getElementById('setup');
+const nameIn=document.getElementById('kidname'), goBtn=document.getElementById('setupgo');
+const recBtn=document.getElementById('recbtn'), playBtn=document.getElementById('playname'), delBtn=document.getElementById('delname'), recNote=document.getElementById('recnote');
+let draftVoice='';
+function refreshSetup(){ goBtn.disabled=!nameIn.value.trim(); playBtn.style.display=delBtn.style.display=draftVoice?'inline-block':'none'; }
+function openSetup(){ nameIn.value=KID; draftVoice=PROFILE.voice||''; refreshSetup(); setupEl.style.display='flex'; hideSub(); }
+nameIn.addEventListener('input',refreshSetup);
+nameIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ nameIn.blur(); } });
+setupEl.addEventListener('touchmove',e=>e.stopPropagation(),{passive:true});
+gearBtn.addEventListener('click',openSetup);
+playBtn.addEventListener('click',()=>{ try{ new Audio(draftVoice).play(); }catch(e){} });
+delBtn.addEventListener('click',()=>{ draftVoice=''; refreshSetup(); });
+if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)){ recBtn.style.display='none'; recNote.textContent='Recording is not available on this browser. Tara will cheer without the name.'; }
+recBtn.addEventListener('click',async()=>{
+  if(recBtn.classList.contains('on')) return;
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    const rec=new MediaRecorder(stream); const chunks=[];
+    rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
+    rec.onstop=()=>{ stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(chunks,{type:rec.mimeType||'audio/mp4'}); const fr=new FileReader();
+      fr.onload=()=>{ draftVoice=fr.result; recBtn.classList.remove('on'); recBtn.textContent='🎙 Record again'; refreshSetup(); try{ new Audio(draftVoice).play(); }catch(e){} };
+      fr.readAsDataURL(blob); };
+    recBtn.classList.add('on'); let n=3; recBtn.textContent='🔴 Recording… say the name ('+n+')';
+    rec.start();
+    const tick=setInterval(()=>{ n--; if(n>0) recBtn.textContent='🔴 Recording… say the name ('+n+')'; else { clearInterval(tick); try{rec.stop();}catch(e){} } },1000);
+  }catch(e){ recBtn.classList.remove('on'); recNote.textContent='Microphone was not allowed. You can still play - Tara will cheer without the name.'; }
+});
+goBtn.addEventListener('click',async()=>{
+  const nm=nameIn.value.trim().replace(/\s+/g,' ').slice(0,14); if(!nm) return;
+  PROFILE.name=nm; PROFILE.voice=draftVoice; KID=nm;
+  if(!isManik() && !(PROFILE.clips && PROFILE.clipsFor===nm)){
+    goBtn.disabled=true; const label=goBtn.textContent;
+    goBtn.textContent='Teaching Tara to say '+nm+'…';
+    const clips=await fetchNameClips(nm);
+    goBtn.textContent=label; goBtn.disabled=false;
+    if(clips){ PROFILE.clips=clips; PROFILE.clipsFor=nm; } else { PROFILE.clips=null; PROFILE.clipsFor=''; }
+  }
+  saveProfile(); loadSave();
+  setupEl.style.display='none'; titleScene();
+});
+if(!KID) openSetup(); else titleScene();
+
 </script>
 </body>
 </html>
