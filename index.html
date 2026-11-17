@@ -338,13 +338,13 @@ function bulldozer(x,y,s=1){ // origin = bottom-centre
   return `<g transform="translate(${x} ${y}) scale(${s})">
     <ellipse cx="0" cy="6" rx="200" ry="16" fill="#00000018"/>
     <rect x="-170" y="-80" width="300" height="80" rx="40" fill="${C.dark}"/>
-    ${[-130,-65,0,65,100].map(cx=>`<circle cx="${cx}" cy="-40" r="26" fill="#4A4E69"/>`).join('')}
+    ${[-132,-76,-20,36,92].map(cx=>`<circle cx="${cx}" cy="-40" r="24" fill="#4A4E69"/>`).join('')}
     <rect x="-150" y="-190" width="250" height="110" rx="24" fill="${C.orange}"/>
     <rect x="-130" y="-300" width="150" height="120" rx="26" fill="${C.orange}"/>
     <rect x="-112" y="-282" width="114" height="78" rx="18" fill="#DDF3FF"/>
     ${eyes(-55,-246,1)}
     ${smile(-55,-218,1)}
-    <rect x="100" y="-170" width="40" height="22" rx="10" fill="${C.orangeD}"/>
+    <rect x="100" y="-170" width="86" height="22" rx="10" fill="${C.orangeD}"/>
     <path d="M150 -220 Q215 -120 150 -10 L190 -10 Q240 -120 190 -220 Z" fill="${C.yellow}"/>
     <rect x="40" y="-225" width="22" height="40" rx="8" fill="${C.dark}"/>
   </g>`;
@@ -500,7 +500,7 @@ function excavator(x,y,s=1,boom=-35,fore=70){
   return `<g transform="translate(${x} ${y}) scale(${s})">
     <ellipse cx="0" cy="6" rx="200" ry="16" fill="#00000018"/>
     <rect x="-170" y="-80" width="300" height="80" rx="40" fill="${C.dark}"/>
-    ${[-130,-65,0,65,100].map(cx=>`<circle cx="${cx}" cy="-40" r="26" fill="#4A4E69"/>`).join('')}
+    ${[-132,-76,-20,36,92].map(cx=>`<circle cx="${cx}" cy="-40" r="24" fill="#4A4E69"/>`).join('')}
     <rect x="-160" y="-180" width="250" height="100" rx="24" fill="${C.green}"/>
     <rect x="-150" y="-300" width="140" height="130" rx="26" fill="${C.green}"/>
     <rect x="-132" y="-282" width="104" height="80" rx="18" fill="#DDF3FF"/>
@@ -892,7 +892,9 @@ function persist(){ try{ localStorage.setItem(saveKey(),JSON.stringify(SAVE)); }
 /* Tara saying this child's name - made once by the site's voice helper, then kept on the device */
 const CLIP_TEXT = { hello:n=>`Hello, ${n}! I am Tara. Welcome to Tinkertown!`, cheer1:n=>`Yay, ${n}! You did it!`, cheer2:n=>`Well done, ${n}!`, cheer3:n=>`Super, ${n}! You are a star!` };
 const hasClips = () => PROFILE.clips && PROFILE.clipsFor===clipId() && !builtInName();
+let CLIP_ERR='';  // why the last name-voice attempt failed: 'limit' | 'off' | 'net'
 async function fetchNameClips(name, say, onStatus){
+  CLIP_ERR='';
   if(!/^https?:$/.test(location.protocol)) return null;
   const blobToData = b => new Promise(r=>{ const fr=new FileReader(); fr.onload=()=>r(fr.result); fr.onerror=()=>r(null); fr.readAsDataURL(b); });
   const out={};
@@ -901,9 +903,9 @@ async function fetchNameClips(name, say, onStatus){
       onStatus && onStatus(k);
       const ctl=new AbortController(); const tm=setTimeout(()=>ctl.abort(),15000);
       const r=await fetch(`/api/name?n=${encodeURIComponent(name)}&k=${k}${say?'&s='+encodeURIComponent(say):''}`,{signal:ctl.signal}); clearTimeout(tm);
-      if(!r.ok || !(r.headers.get('Content-Type')||'').includes('audio')) return null;
+      if(!r.ok || !(r.headers.get('Content-Type')||'').includes('audio')){ CLIP_ERR = r.status===429?'limit':(r.status===503?'off':'net'); return null; }
       out[k]=await blobToData(await r.blob()); if(!out[k]) return null;
-    }catch(e){ return null; }
+    }catch(e){ CLIP_ERR='net'; return null; }
   }
   return out;
 }
@@ -1332,7 +1334,8 @@ const gearBtn=document.getElementById('gear'), setupEl=document.getElementById('
 const nameIn=document.getElementById('kidname'), goBtn=document.getElementById('setupgo');
 const recNote=document.getElementById('recnote'), sayIn=document.getElementById('kidsay');
 function refreshSetup(){ goBtn.disabled=!nameIn.value.trim(); }
-function openSetup(){ nameIn.value=KID; sayIn.value=PROFILE.say||''; refreshSetup(); setupEl.style.display='flex'; hideSub(); }
+const RECNOTE_TEXT=recNote.textContent;
+function openSetup(){ nameIn.value=KID; sayIn.value=PROFILE.say||''; recNote.textContent=RECNOTE_TEXT; recNote.style.color=''; delete setupEl.dataset.warned; refreshSetup(); setupEl.style.display='flex'; hideSub(); }
 nameIn.addEventListener('input',refreshSetup);
 nameIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ nameIn.blur(); } });
 sayIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ sayIn.blur(); } });
@@ -1347,9 +1350,22 @@ goBtn.addEventListener('click',async()=>{
     goBtn.textContent='Teaching Tara to say '+nm+'…';
     const clips=await fetchNameClips(nm, sayFor());
     goBtn.textContent=label; goBtn.disabled=false;
-    if(clips){ PROFILE.clips=clips; PROFILE.clipsFor=clipId(); } else { PROFILE.clips=null; PROFILE.clipsFor=''; }
+    if(clips){ PROFILE.clips=clips; PROFILE.clipsFor=clipId(); }
+    else {
+      PROFILE.clips=null; PROFILE.clipsFor='';
+      // tell the grown-up why, once; a second tap plays on without the name
+      if(setupEl.dataset.warned!==nm){
+        setupEl.dataset.warned=nm;
+        recNote.textContent = CLIP_ERR==='limit'
+          ? `Tara has learned enough new names for today, so she can't say "${nm}" yet. Tap again to play without the name - she'll learn it automatically tomorrow (or raise the limit on the admin page).`
+          : CLIP_ERR==='off' ? `Name voices are switched off on the admin page. Tap again to play without the name.`
+          : `Tara couldn't learn "${nm}" right now (check the internet). Tap again to play - she'll try again next time.`;
+        recNote.style.color='#c0392b'; goBtn.textContent='Play without the name ▶';
+        return;
+      }
+    }
   }
-  saveProfile(); loadSave();
+  saveProfile(); loadSave(); delete setupEl.dataset.warned; goBtn.textContent="Let's play! ▶";
   setupEl.style.display='none'; titleScene();
 });
 if(!KID) openSetup(); else titleScene();

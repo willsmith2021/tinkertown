@@ -26,7 +26,7 @@ const KINDS = {
   cheer2: n => `Well done, ${n}!`,
   cheer3: n => `Super, ${n}! You are a star!`,
 };
-const DEFAULT_CFG = { enabled: true, dailyLimit: 10, perDeviceLimit: 3 };
+const DEFAULT_CFG = { enabled: true, dailyLimit: 20, perDeviceLimit: 10 };
 
 export default {
   async fetch(request, env, ctx) {
@@ -174,9 +174,11 @@ async function nameEndpoint(request, env, url) {
   const cfg = await getCfg(env);
   if (!cfg.enabled) return text("Name voices are switched off", 503);
 
-  // daily limit counts NEW names (all 4 clips of one name = 1)
+  // daily limit counts NEW names (all 4 clips of one name = 1; a new pronunciation of a known name is free)
   const names = await getNames(env);
-  const isNewName = !names.some(x => `${x.name.toLowerCase()}|${x.spoken || ""}` === id);
+  const known = names.some(x => x.name.toLowerCase() === name.toLowerCase());
+  const isNewName = !known;
+  const isNewEntry = !names.some(x => `${x.name.toLowerCase()}|${x.spoken || ""}` === id);
   const ck = `count:${today()}`;
   const used = parseInt((await env.TT.get(ck)) || "0", 10);
   if (isNewName && used >= cfg.dailyLimit) return text("Daily limit reached", 429);
@@ -189,9 +191,11 @@ async function nameEndpoint(request, env, url) {
   const out = await makeClip(env, kind, spoken);
   if (out.error) return text("Voice service unavailable", 502);
   await env.TT.put(audioKey, out.audio);
-  if (isNewName) {
+  if (isNewEntry) {
     names.unshift({ name, spoken, at: new Date().toISOString() });
     await env.TT.put("names", JSON.stringify(names.slice(0, 500)));
+  }
+  if (isNewName) {
     await env.TT.put(ck, String(used + 1), { expirationTtl: 60 * 60 * 48 });
     await env.TT.put(dk, String(devUsed + 1), { expirationTtl: 60 * 60 * 48 });
   }
