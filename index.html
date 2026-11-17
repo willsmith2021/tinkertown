@@ -1345,12 +1345,14 @@ goBtn.addEventListener('click',async()=>{
   const nm=nameIn.value.trim().replace(/\s+/g,' ').slice(0,14); if(!nm) return;
   const say=sayIn.value.normalize('NFC').trim().replace(/\s+/g,' ').slice(0,30);
   PROFILE.name=nm; PROFILE.say=say; PROFILE.voice=''; KID=nm;
-  if(!builtInName() && !hasClips()){
+  if(!builtInName()){   // always ask again: free for names already made, and picks up re-recorded names
+    const had = hasClips() ? PROFILE.clips : null;
     goBtn.disabled=true; const label=goBtn.textContent;
     goBtn.textContent='Teaching Tara to say '+nm+'…';
     const clips=await fetchNameClips(nm, sayFor());
     goBtn.textContent=label; goBtn.disabled=false;
     if(clips){ PROFILE.clips=clips; PROFILE.clipsFor=clipId(); }
+    else if(had && CLIP_ERR==='net'){ PROFILE.clips=had; PROFILE.clipsFor=clipId(); }   // offline: keep the voice we already have
     else {
       PROFILE.clips=null; PROFILE.clipsFor='';
       // tell the grown-up why, once; a second tap plays on without the name
