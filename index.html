@@ -58,17 +58,26 @@
   @keyframes rotph{0%,25%{transform:rotate(0)}55%,85%{transform:rotate(-90deg)}100%{transform:rotate(0)}}
   @media (orientation:portrait) and (max-aspect-ratio:9/10){ #rotate{display:flex} }
   #setup{position:fixed;inset:0;background:#BFE9FFf2;display:none;align-items:center;justify-content:center;z-index:40;padding:calc(var(--sat) + 12px) calc(var(--sar) + 12px) calc(var(--sab) + 12px) calc(var(--sal) + 12px);box-sizing:border-box;overflow:auto;touch-action:auto}
-  #setup .card{background:#fff;border-radius:28px;box-shadow:0 10px 0 #00000018;padding:clamp(18px,3.5vmin,36px);width:min(560px,100%);box-sizing:border-box;color:#2B2D42;margin:auto}
-  #setup h2{margin:0 0 4px;font-size:clamp(22px,4vmin,34px);color:#7B3FE4}
-  #setup p{margin:0 0 16px;font-size:clamp(14px,2.4vmin,18px);opacity:.8}
-  #setup label{display:block;font-weight:800;margin:10px 0 6px;font-size:clamp(15px,2.6vmin,19px)}
-  #setup input{width:100%;box-sizing:border-box;font:800 20px inherit;font-family:inherit;padding:14px 16px;border:3px solid #DDE3EE;border-radius:16px;outline:none;-webkit-user-select:text;user-select:text}
-  #setup input:focus{border-color:#7B3FE4}
-  #setup .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
-  #setup button{font-family:inherit;font-weight:900;border:none;border-radius:999px;cursor:pointer;font-size:clamp(15px,2.6vmin,19px);padding:12px 18px}
-  #setup .ghost{background:#EEF2F8;color:#2B2D42}
-  #setup .go{width:100%;margin-top:18px;background:#3CCB6B;color:#fff;font-size:clamp(20px,3.6vmin,28px);padding:16px}
+  #setup .card{background:#fff;border-radius:36px;box-shadow:0 12px 0 #00000018;padding:clamp(20px,4vmin,40px);width:min(620px,100%);box-sizing:border-box;color:#2B2D42;margin:auto;text-align:center}
+  #setup .hero{font-size:clamp(44px,9vmin,76px);line-height:1;margin-bottom:6px}
+  #setup h2{margin:0 0 clamp(12px,2.5vmin,20px);font-size:clamp(30px,6vmin,50px);line-height:1.1;font-weight:900;color:#7B3FE4}
+  #setup h2 label{cursor:text}
+  #setup input{width:100%;box-sizing:border-box;font-family:inherit;font-weight:900;text-align:center;color:#2B2D42;padding:clamp(14px,2.6vmin,22px) 18px;border:5px solid #E6DCFF;background:#FAF7FF;border-radius:26px;outline:none;-webkit-user-select:text;user-select:text;transition:border-color .2s,box-shadow .2s}
+  #kidname{font-size:clamp(32px,6.5vmin,54px);letter-spacing:.02em}
+  #kidname::placeholder{color:#C9BFE6;font-weight:800}
+  #setup input:focus{border-color:#7B3FE4;box-shadow:0 0 0 6px #7B3FE422;background:#fff}
+  #setup .small{font-size:clamp(14px,2.3vmin,17px);opacity:.65;margin-top:10px;font-weight:700}
+  #setup details{margin-top:14px}
+  #setup summary{list-style:none;cursor:pointer;display:inline-block;font-weight:800;font-size:clamp(13px,2.2vmin,16px);color:#7B3FE4;background:#F3EEFF;border-radius:999px;padding:8px 16px}
+  #setup summary::-webkit-details-marker{display:none}
+  #kidsay{margin-top:12px;font-size:clamp(20px,3.6vmin,28px);border-width:4px}
+  #setup button{font-family:inherit;font-weight:900;border:none;border-radius:999px;cursor:pointer}
+  #setup .go{width:100%;margin-top:clamp(16px,3vmin,24px);background:#3CCB6B;color:#fff;font-size:clamp(22px,4vmin,32px);padding:clamp(14px,2.6vmin,20px);box-shadow:0 7px 0 #2A9E52}
+  #setup .go:active{transform:translateY(4px);box-shadow:0 3px 0 #2A9E52}
   #setup .go:disabled{opacity:.45}
+  #setup .card,#credits .card{position:relative}
+  #setup .xclose,#credits .xclose{position:absolute;top:clamp(10px,2vmin,18px);right:clamp(10px,2vmin,18px);width:clamp(44px,7vmin,56px);height:clamp(44px,7vmin,56px);margin:0;padding:0;border:none;border-radius:50%;background:#F1EEF8;color:#E5484D;font-family:inherit;font-weight:900;font-size:clamp(20px,3.4vmin,28px);line-height:1;cursor:pointer;box-shadow:0 4px 0 #00000014}
+  #setup .xclose:active,#credits .xclose:active{transform:translateY(3px);box-shadow:0 1px 0 #00000014}
   #creditsBtn{position:fixed;right:calc(var(--sar) + var(--gap));bottom:calc(var(--sab) + var(--gap));background:#fff;border:none;border-radius:999px;box-shadow:0 5px 0 #00000022;font-family:inherit;font-weight:800;font-size:calc(var(--btn)*.24);padding:calc(var(--btn)*.14) calc(var(--btn)*.3);color:#2B2D42;cursor:pointer;z-index:15;display:none}
   #credits{position:fixed;inset:0;background:#BFE9FFf2;display:none;align-items:center;justify-content:center;z-index:40;padding:calc(var(--sat) + 12px) calc(var(--sar) + 12px) calc(var(--sab) + 12px) calc(var(--sal) + 12px);box-sizing:border-box;overflow:auto;touch-action:auto}
   #credits .card{background:#fff;border-radius:28px;box-shadow:0 10px 0 #00000018;padding:clamp(18px,3.5vmin,36px);width:min(560px,100%);box-sizing:border-box;color:#2B2D42;margin:auto;text-align:center}
@@ -81,7 +90,7 @@
   #credits button{font-family:inherit;font-weight:900;border:none;border-radius:999px;cursor:pointer;width:100%;margin-top:16px;background:#3CCB6B;color:#fff;font-size:clamp(18px,3.2vmin,24px);padding:14px}
   @media (max-height:520px){ #credits .thought{font-size:13px;line-height:1.35;margin-top:8px} #credits .role{margin-top:0} #credits h2{margin-bottom:2px;font-size:22px} #credits .who{font-size:22px} #credits .small{margin-top:6px} #credits button{margin-top:8px;padding:10px;font-size:18px} }
   #setup .small{font-size:13px;opacity:.7;margin-top:6px}
-  @media (max-height:520px){ #setup .card p, #setup .small{display:none} #setup h2{margin:0 0 6px} #setup input{padding:10px 14px} #setup label{margin-top:6px!important} }
+  @media (max-height:520px){ #setup .hero{display:none} #setup h2{font-size:24px;margin-bottom:8px} #setup h2 br{display:none} #kidname{font-size:28px;padding:10px 14px} #setup .small{margin-top:6px} #setup details{margin-top:8px} #setup .go{margin-top:10px;padding:10px;font-size:20px} }
 </style>
 </head>
 <body>
@@ -95,6 +104,7 @@
 <button id="gear" aria-label="Grown-up settings">⚙️</button>
 <button id="creditsBtn" aria-label="Credits">ⓘ Credits</button>
 <div id="credits"><div class="card">
+  <button class="xclose" id="creditsx" aria-label="Close">✕</button>
   <h2>🛠️ Credits</h2>
   <div class="role">Developer</div>
   <p class="who">Rishubh Teotia</p>
@@ -104,20 +114,20 @@
     Being an AI expert, I make things like this for fun, and this game took me about 3 hours to build.
     I'll keep adding new stages to make it even more exciting for kids!</div>
   <div class="small" style="font-weight:800;opacity:.75">🚫 No ads &nbsp;·&nbsp; 🧒 Made for little builders</div>
-  <div class="small">Voices: Tara and Grumble, made with ElevenLabs</div>
   <button id="creditsClose">Back to the game ▶</button>
 </div></div>
 <div id="turn"></div>
 <div id="rotate"><svg viewBox="0 0 200 200" width="38%" style="max-width:260px"><g class="rot"><rect x="55" y="20" width="90" height="160" rx="18" fill="#2B2D42"/><rect x="63" y="34" width="74" height="122" rx="8" fill="#BFE9FF"/><circle cx="100" cy="168" r="6" fill="#fff"/></g><path d="M170 120 A75 75 0 0 1 120 175" stroke="#7B3FE4" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M112 160 L118 182 L138 172 Z" fill="#7B3FE4"/></svg><div class="msg">Turn me sideways to play!</div></div>
 <div id="setup"><div class="card">
-  <h2>👋 Hello, grown-up!</h2>
-  <p>Set up the game for your child. You can change this later with ⚙️ on the start screen.</p>
-  <label for="kidname">Child's name</label>
-  <input id="kidname" maxlength="14" autocomplete="off" autocapitalize="words" placeholder="e.g. Aarav" enterkeyhint="done">
-  <div class="small" id="recnote">Tara will say this name herself - no recording needed.</div>
-  <label for="kidsay" style="margin-top:14px">Say it like <span style="font-weight:600;opacity:.6">(optional)</span></label>
-  <input id="kidsay" maxlength="30" autocomplete="off" placeholder="e.g. माणिक  or  Maa-nik" enterkeyhint="done">
-  <div class="small">Tara already reads names the Indian way. If it still sounds wrong, type the name in Hindi (माणिक) or how it sounds (Maa-nik).</div>
+  <button class="xclose" id="setupx" aria-label="Close">✕</button>
+  <div class="hero" aria-hidden="true">👷</div>
+  <h2><label for="kidname">What's your name, <br>little builder?</label></h2>
+  <input id="kidname" maxlength="14" autocomplete="off" autocapitalize="words" placeholder="Type name here" enterkeyhint="done">
+  <div class="small" id="recnote">Tara will say this name when you play!</div>
+  <details id="saybox"><summary>Name sounds wrong? Tap here</summary>
+    <input id="kidsay" maxlength="30" autocomplete="off" placeholder="माणिक  or  Maa-nik" enterkeyhint="done">
+    <div class="small">Type the name in Hindi, or the way it sounds.</div>
+  </details>
   <button class="go" id="setupgo" disabled>Let's play! ▶</button>
 </div></div>
 
@@ -1360,15 +1370,18 @@ const nameIn=document.getElementById('kidname'), goBtn=document.getElementById('
 const recNote=document.getElementById('recnote'), sayIn=document.getElementById('kidsay');
 function refreshSetup(){ goBtn.disabled=!nameIn.value.trim(); }
 const RECNOTE_TEXT=recNote.textContent;
-function openSetup(){ nameIn.value=KID; sayIn.value=PROFILE.say||''; recNote.textContent=RECNOTE_TEXT; recNote.style.color=''; delete setupEl.dataset.warned; refreshSetup(); setupEl.style.display='flex'; hideSub(); }
+function openSetup(){ nameIn.value=KID; sayIn.value=PROFILE.say||''; document.getElementById('saybox').open=!!PROFILE.say; recNote.textContent=RECNOTE_TEXT; recNote.style.color=''; delete setupEl.dataset.warned; refreshSetup(); setupEl.style.display='flex'; hideSub(); }
 nameIn.addEventListener('input',refreshSetup);
 nameIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ nameIn.blur(); } });
 sayIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ sayIn.blur(); } });
 setupEl.addEventListener('touchmove',e=>e.stopPropagation(),{passive:true});
 gearBtn.addEventListener('click',openSetup);
+// ✕ on the name window: close without changing anything (with no name yet, the game just plays without one)
+document.getElementById('setupx').addEventListener('click',()=>{ setupEl.style.display='none'; delete setupEl.dataset.warned; goBtn.disabled=false; goBtn.textContent="Let's play! ▶"; titleScene(); });
 const creditsBtn=document.getElementById('creditsBtn'), creditsEl=document.getElementById('credits');
 creditsBtn.addEventListener('click',()=>{ creditsEl.style.display='flex'; hideSub(); });
 document.getElementById('creditsClose').addEventListener('click',()=>{ creditsEl.style.display='none'; });
+document.getElementById('creditsx').addEventListener('click',()=>{ creditsEl.style.display='none'; });
 creditsEl.addEventListener('touchmove',e=>e.stopPropagation(),{passive:true});
 goBtn.addEventListener('click',async()=>{
   const nm=nameIn.value.trim().replace(/\s+/g,' ').slice(0,14); if(!nm) return;
