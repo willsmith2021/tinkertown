@@ -4,7 +4,7 @@
 // Required settings (Cloudflare Pages project -> Settings):
 //   KV namespace binding:  TT                    (stores encrypted key, settings, made names)
 //   Secret:  MASTER_KEY          32 random bytes, base64  (Mac Terminal:  openssl rand -base64 32)
-//   Variable: ADMIN_EMAIL        rishubhteotia007@gmail.com
+//   Variable: ADMIN_EMAIL        the one email allowed into /admin
 //   Variable: ACCESS_TEAM_DOMAIN e.g. yourteam.cloudflareaccess.com
 //   Variable: ACCESS_AUD         the "Application Audience (AUD) Tag" of the Access app protecting /admin
 //
@@ -46,17 +46,33 @@ export default {
       req = new Request(u, request);
     }
     // a missing file must say "not found" - never hand back the game page instead (iPads wait on it)
-    if (/\.[a-z0-9]{2,5}$/i.test(p) && p !== "/index.html") {
+    if (/\.[a-z0-9]{2,12}$/i.test(p) && p !== "/index.html") {
       const r = await env.ASSETS.fetch(req);
-      if ((r.headers.get("Content-Type") || "").includes("text/html")) return new Response("Not found", { status: 404 });
-      return r;
+      if ((r.headers.get("Content-Type") || "").includes("text/html")) return text("Not found", 404);
+      return withSec(r);
     }
-    return env.ASSETS.fetch(request);   // the game itself
+    // the game itself - only real page paths; anything else (/.git/config, /.env ...) is "not found"
+    if (p !== "/" && p !== "/index.html" && !/^\/[a-z0-9_-]*$/i.test(p)) return text("Not found", 404);
+    if (/^\/\./.test(p)) return text("Not found", 404);
+    return withSec(await env.ASSETS.fetch(request));
   },
 };
 
 /* ------------------------------------------------------------------ helpers */
 const SEC = { "Strict-Transport-Security": "max-age=31536000; includeSubDomains", "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer" };
+// protective headers for the public game: no other site may frame it, it can only talk to this site,
+// and it can't use the camera / microphone / location
+const GAME_CSP = "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; " +
+  "img-src 'self' data: blob:; media-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; " +
+  "manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+function withSec(r) {
+  const h = new Headers(r.headers);
+  Object.entries(SEC).forEach(([k, v]) => h.set(k, v));
+  h.set("X-Frame-Options", "DENY");
+  h.set("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=()");
+  if ((h.get("Content-Type") || "").includes("text/html")) h.set("Content-Security-Policy", GAME_CSP);
+  return new Response(r.body, { status: r.status, statusText: r.statusText, headers: h });
+}
 const json = (o, status = 200, extra = {}) =>
   new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json", "Cache-Control": "no-store", ...SEC, ...extra } });
 const text = (t, status) => new Response(t, { status, headers: { "Content-Type": "text/plain", "Cache-Control": "no-store", ...SEC } });
