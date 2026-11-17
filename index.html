@@ -66,8 +66,6 @@
   #setup input:focus{border-color:#7B3FE4}
   #setup .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:8px}
   #setup button{font-family:inherit;font-weight:900;border:none;border-radius:999px;cursor:pointer;font-size:clamp(15px,2.6vmin,19px);padding:12px 18px}
-  #setup .rec{background:#FFE8EC;color:#E63946}
-  #setup .rec.on{background:#E63946;color:#fff}
   #setup .ghost{background:#EEF2F8;color:#2B2D42}
   #setup .go{width:100%;margin-top:18px;background:#3CCB6B;color:#fff;font-size:clamp(20px,3.6vmin,28px);padding:16px}
   #setup .go:disabled{opacity:.45}
@@ -90,9 +88,7 @@
   <p>Set up the game for your child. You can change this later with ⚙️ on the start screen.</p>
   <label for="kidname">Child's name</label>
   <input id="kidname" maxlength="14" autocomplete="off" autocapitalize="words" placeholder="e.g. Aarav" enterkeyhint="done">
-  <label>Say the name in your voice <span style="font-weight:600;opacity:.7">(optional)</span></label>
-  <div class="row"><button class="rec" id="recbtn">🎙 Record name</button><button class="ghost" id="playname" style="display:none">▶ Hear it</button><button class="ghost" id="delname" style="display:none">✕ Remove</button></div>
-  <div class="small" id="recnote">Tap record and say just the name, e.g. "Aarav!". It plays every time your child wins.</div>
+  <div class="small" id="recnote">Tara will say this name herself - no recording needed.</div>
   <button class="go" id="setupgo" disabled>Let's play! ▶</button>
 </div></div>
 
@@ -910,14 +906,6 @@ function playData(src, subtitle){
   });
 }
 
-/* plays the grown-up's recording of the child's name, if there is one */
-function playName(){
-  return new Promise(res=>{
-    if(!PROFILE.voice) return res();
-    let done=false; const fin=()=>{ if(!done){done=true;res();} };
-    try{ showSub('',esc(KID)+'!'); const a=new Audio(PROFILE.voice); a.onended=fin; a.onerror=fin; a.play().catch(fin); setTimeout(fin,4000); }catch(e){ fin(); }
-  });
-}
 const starKey=(w,i)=>`${w}-${i}`;
 const worldStars=w=>STAGES[w].filter((_,i)=>SAVE.stars[starKey(w,i)]).length;
 const totalStars=()=>Object.keys(SAVE.stars).length;
@@ -943,7 +931,7 @@ async function introScene(){
     <g class="bob">${tara(420,760,1.15)}</g>`);
   homeBtn.style.display='flex';
   if(hasClips()){ await playData(PROFILE.clips.hello, CLIP_TEXT.hello(KID)); if(!live(t))return; }
-  else { await say('hello_m'); if(!live(t))return; if(!isManik() && PROFILE.voice){ await playName(); if(!live(t))return; } }
+  else { await say('hello_m'); if(!live(t))return; }
   await say('ohno'); if(!live(t))return;
   menuScene();
 }
@@ -998,7 +986,7 @@ async function winStage(ctx,t){
     <text x="800" y="480" text-anchor="middle" font-size="${KID.length>6?Math.max(52,96-(KID.length-6)*7):96}" font-weight="900" fill="${C.purple}">Yay${KID?' '+esc(KID):''}!</text></g>`);
   SAVE.stars[starKey(ctx.wid,ctx.i)]=true; persist();
   if(hasClips()){ const k=pick(['cheer1','cheer2','cheer3']); await playData(PROFILE.clips[k], CLIP_TEXT[k](KID)); if(!live(t)) return; }
-  else { await playName(); if(!live(t)) return; await say(pick(['win1','win2','win3','win4','win5'])); if(!live(t)) return; }
+  else { await say(pick(['win1','win2','win3','win4','win5'])); if(!live(t)) return; }
   await sleep(500); if(!live(t)) return;
   if(totalStars()>=30 || (!SAVE.story && WORLDS.every(w=>worldStars(w.id)>0))) return menuScene();
   stageMap(ctx.wid);
@@ -1334,35 +1322,16 @@ fitView();
 /* ============ GROWN-UP SETUP ============ */
 const gearBtn=document.getElementById('gear'), setupEl=document.getElementById('setup');
 const nameIn=document.getElementById('kidname'), goBtn=document.getElementById('setupgo');
-const recBtn=document.getElementById('recbtn'), playBtn=document.getElementById('playname'), delBtn=document.getElementById('delname'), recNote=document.getElementById('recnote');
-let draftVoice='';
-function refreshSetup(){ goBtn.disabled=!nameIn.value.trim(); playBtn.style.display=delBtn.style.display=draftVoice?'inline-block':'none'; }
-function openSetup(){ nameIn.value=KID; draftVoice=PROFILE.voice||''; refreshSetup(); setupEl.style.display='flex'; hideSub(); }
+const recNote=document.getElementById('recnote');
+function refreshSetup(){ goBtn.disabled=!nameIn.value.trim(); }
+function openSetup(){ nameIn.value=KID; refreshSetup(); setupEl.style.display='flex'; hideSub(); }
 nameIn.addEventListener('input',refreshSetup);
 nameIn.addEventListener('keydown',e=>{ if(e.key==='Enter'){ nameIn.blur(); } });
 setupEl.addEventListener('touchmove',e=>e.stopPropagation(),{passive:true});
 gearBtn.addEventListener('click',openSetup);
-playBtn.addEventListener('click',()=>{ try{ new Audio(draftVoice).play(); }catch(e){} });
-delBtn.addEventListener('click',()=>{ draftVoice=''; refreshSetup(); });
-if(!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia && window.MediaRecorder)){ recBtn.style.display='none'; recNote.textContent='Recording is not available on this browser. Tara will cheer without the name.'; }
-recBtn.addEventListener('click',async()=>{
-  if(recBtn.classList.contains('on')) return;
-  try{
-    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
-    const rec=new MediaRecorder(stream); const chunks=[];
-    rec.ondataavailable=e=>{ if(e.data.size) chunks.push(e.data); };
-    rec.onstop=()=>{ stream.getTracks().forEach(t=>t.stop());
-      const blob=new Blob(chunks,{type:rec.mimeType||'audio/mp4'}); const fr=new FileReader();
-      fr.onload=()=>{ draftVoice=fr.result; recBtn.classList.remove('on'); recBtn.textContent='🎙 Record again'; refreshSetup(); try{ new Audio(draftVoice).play(); }catch(e){} };
-      fr.readAsDataURL(blob); };
-    recBtn.classList.add('on'); let n=3; recBtn.textContent='🔴 Recording… say the name ('+n+')';
-    rec.start();
-    const tick=setInterval(()=>{ n--; if(n>0) recBtn.textContent='🔴 Recording… say the name ('+n+')'; else { clearInterval(tick); try{rec.stop();}catch(e){} } },1000);
-  }catch(e){ recBtn.classList.remove('on'); recNote.textContent='Microphone was not allowed. You can still play - Tara will cheer without the name.'; }
-});
 goBtn.addEventListener('click',async()=>{
   const nm=nameIn.value.trim().replace(/\s+/g,' ').slice(0,14); if(!nm) return;
-  PROFILE.name=nm; PROFILE.voice=draftVoice; KID=nm;
+  PROFILE.name=nm; PROFILE.voice=''; KID=nm;
   if(!isManik() && !(PROFILE.clips && PROFILE.clipsFor===nm)){
     goBtn.disabled=true; const label=goBtn.textContent;
     goBtn.textContent='Teaching Tara to say '+nm+'…';
@@ -1374,6 +1343,8 @@ goBtn.addEventListener('click',async()=>{
   setupEl.style.display='none'; titleScene();
 });
 if(!KID) openSetup(); else titleScene();
+// if Tara couldn't learn the name earlier (offline / helper not set up yet), quietly try again
+if(KID && !isManik() && !hasClips()){ fetchNameClips(KID).then(c=>{ if(c && !hasClips()){ PROFILE.clips=c; PROFILE.clipsFor=KID; saveProfile(); } }); }
 
 </script>
 </body>
