@@ -49,7 +49,10 @@ export default {
     if (/\.[a-z0-9]{2,12}$/i.test(p) && p !== "/index.html") {
       const r = await env.ASSETS.fetch(req);
       if ((r.headers.get("Content-Type") || "").includes("text/html")) return text("Not found", 404);
-      return withSec(r);
+      const out = withSec(r);
+      // the offline helper must always be re-checked, so game updates reach every device
+      if (p === "/sw.js") { out.headers.set("Cache-Control", "no-cache"); out.headers.set("Content-Type", "text/javascript; charset=utf-8"); }
+      return out;
     }
     // the game itself - only real page paths; anything else (/.git/config, /.env ...) is "not found"
     if (p !== "/" && p !== "/index.html" && !/^\/[a-z0-9_-]*$/i.test(p)) return text("Not found", 404);
