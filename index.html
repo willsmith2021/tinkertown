@@ -2000,6 +2000,8 @@ async function winStage(ctx,t){
   await sleep(500); if(!live(t)) return;
   if(restCheck()) return;
   if((totalStars()>=TOTAL_STARS() && !SAVE.champion) || (!SAVE.story && ORIGINAL6.every(id=>worldStars(id)>0))) return menuScene();
+  // every job for this machine is done: go back to the machines so the child picks a new one
+  if(worldStars(ctx.wid)>=STAGES[ctx.wid].length){ MENU_PAGE=Math.floor(WORLDS.findIndex(w=>w.id===ctx.wid)/6); return menuScene(); }
   stageMap(ctx.wid);
 }
 function mascot(wid,x=150,y=890,s=.38){ const w=WORLDS.find(q=>q.id===wid); return `<g class="honk">${w.draw(x,y,s)}</g>`; }
